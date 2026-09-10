@@ -38,6 +38,11 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<TrustScoreResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [explanation, setExplanation] = useState<{
+    text: string;
+    source: "llm" | "fallback";
+  } | null>(null);
+  const [explaining, setExplaining] = useState(false);
 
   const run = useCallback(async (address: string) => {
     const addr = address.trim();
@@ -45,18 +50,45 @@ export default function Home() {
     setLoading(true);
     setError(null);
     setResult(null);
+    setExplanation(null);
+
+    let scored: TrustScoreResult | null = null;
     try {
       const res = await fetch(`/api/score/${addr}`);
       const data = await res.json();
       if (!res.ok) {
         setError(data.error ?? "Something went wrong.");
       } else {
-        setResult(data as TrustScoreResult);
+        scored = data as TrustScoreResult;
+        setResult(scored);
       }
     } catch {
       setError("Network error — could not reach the scoring service.");
     } finally {
       setLoading(false);
+    }
+
+    // Explanation is a non-blocking enhancement: the score is already shown.
+    if (scored) {
+      setExplaining(true);
+      try {
+        const er = await fetch("/api/explain", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(scored),
+        });
+        const ed = await er.json();
+        if (er.ok && typeof ed?.text === "string") {
+          setExplanation({
+            text: ed.text,
+            source: ed.source === "llm" ? "llm" : "fallback",
+          });
+        }
+      } catch {
+        /* explanation is optional — never block the score on it */
+      } finally {
+        setExplaining(false);
+      }
     }
   }, []);
 
@@ -160,7 +192,13 @@ export default function Home() {
         </div>
       )}
 
-      {result && !loading && <ScoreCard result={result} />}
+      {result && !loading && (
+        <ScoreCard
+          result={result}
+          explanation={explanation}
+          explaining={explaining}
+        />
+      )}
 
       <footer>
         <span>
@@ -173,7 +211,15 @@ export default function Home() {
   );
 }
 
-function ScoreCard({ result }: { result: TrustScoreResult }) {
+function ScoreCard({
+  result,
+  explanation,
+  explaining,
+}: {
+  result: TrustScoreResult;
+  explanation: { text: string; source: "llm" | "fallback" } | null;
+  explaining: boolean;
+}) {
   const color = BAND_COLOR[result.band] ?? "var(--purple)";
   const s = result.activitySummary;
 
@@ -250,6 +296,28 @@ function ScoreCard({ result }: { result: TrustScoreResult }) {
             </div>
           ))}
         </div>
+      </div>
+
+      <div className="section explain">
+        <div className="explain-head">
+          <h3>{explanation?.source === "llm" ? "AI explanation" : "Explanation"}</h3>
+          {explanation?.source === "llm" ? (
+            <span className="ai-badge">AI · does not affect the score</span>
+          ) : (
+            !explaining &&
+            explanation && <span className="ai-badge muted">auto-generated</span>
+          )}
+        </div>
+        {explaining && !explanation ? (
+          <p className="explain-loading">
+            <span className="dot-pulse" /> Writing a plain-English explanation…
+          </p>
+        ) : (
+          <p className="explain-text">
+            {explanation?.text ??
+              "This score reflects the address's verifiable on-chain history."}
+          </p>
+        )}
       </div>
 
       <div className="section">

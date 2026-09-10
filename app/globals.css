@@ -426,3 +426,64 @@ footer {
   flex-wrap: wrap;
   gap: 10px;
 }
+
+/* ---------- AI / explanation panel ---------- */
+.section.explain {
+  border-color: var(--purple);
+  background: linear-gradient(180deg, var(--purple-glow), var(--bg-card));
+}
+.explain-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.explain-head h3 {
+  margin-bottom: 0;
+  color: var(--purple);
+}
+.ai-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--purple);
+  color: var(--purple);
+  background: var(--purple-glow);
+  white-space: nowrap;
+}
+.ai-badge.muted {
+  border-color: var(--border-strong);
+  color: var(--text-faint);
+  background: transparent;
+}
+.explain-text {
+  font-size: 14.5px !important;
+  color: var(--text) !important;
+  line-height: 1.6;
+}
+.explain-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-dim) !important;
+}
+.dot-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--purple);
+  animation: pulse 1s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}

@@ -6,7 +6,8 @@ Paste an address → MonadTrust reads its on-chain history and returns a 0–100
 trust score with a full, human-readable breakdown of *why*. Every input is a
 public on-chain fact that anyone can independently verify. There is no black
 box, no proprietary data, and **no AI model that invents or adjusts the
-number** — the score is computed by a small, open, deterministic engine.
+number** — the score is computed by a small, open, deterministic engine, and AI
+is used only to *explain* the result, never to produce it.
 
 Built for Monad testnet · reads via public JSON-RPC · free to run · MIT-licensed.
 
@@ -76,6 +77,35 @@ an accusation.
 
 ---
 
+## AI that explains — never scores
+
+Track 04 is *Trust, Identity & AI*. MonadTrust's stance on AI is the same as its
+stance on data: **AI is allowed to explain the score, never to produce it.**
+
+[`POST /api/explain`](app/api/explain/route.ts) takes an already-computed result
+and returns a short, plain-English narration for non-experts —
+*"0x6f49…dc9e scores 86/100 (High trust)… it shows 61M transactions sent, active
+today…"*. The layer ([`lib/explain.ts`](lib/explain.ts)) is built around three
+guarantees:
+
+- **The model can't touch the number.** It receives the finished score as fact.
+  The system prompt forbids it from proposing a different score or implying the
+  number is wrong, and the UI always renders our deterministic score, never any
+  number in the model's prose.
+- **Free forever, never breaks.** With no API key it composes the explanation
+  from a deterministic template (labeled *"auto-generated"*, never *"AI"*). Give
+  it a **free** LLM key (e.g. [Groq](https://console.groq.com), no credit card)
+  and it narrates with a real model (labeled *"AI · does not affect the score"*).
+  Any timeout, error, or missing key falls back cleanly — the score is shown
+  first and the explanation is a non-blocking enhancement on top.
+- **Honest labeling.** The UI tells you which of the two produced the text, so a
+  reader is never misled about whether a model was involved.
+
+This is AI used the way a trust product should use it: to make a verifiable
+result *legible*, not to become a new black box.
+
+---
+
 ## On-chain trust registry
 
 [`contracts/TrustRegistry.sol`](contracts/TrustRegistry.sol) is a minimal,
@@ -107,6 +137,22 @@ npm run dev
 That's it — the web app needs **no configuration** and **no API keys**. It uses
 the public Monad testnet RPC out of the box.
 
+### Optional: real AI explanations
+
+The explanation layer works with no key (deterministic fallback). To have a real
+model narrate scores instead, get a **free** key (e.g. from
+[Groq](https://console.groq.com) — no credit card) and add it to `.env`:
+
+```bash
+LLM_API_KEY=your_free_key_here
+# defaults target Groq's OpenAI-compatible API; override if you like:
+# LLM_BASE_URL=https://api.groq.com/openai/v1
+# LLM_MODEL=llama-3.1-8b-instant
+```
+
+The model can only *explain* a score — it can never change the number. See
+[`.env.example`](.env.example).
+
 ### Verify the engine and the live reader
 
 ```bash
@@ -129,11 +175,13 @@ npm run deploy:contract           # deploys to Monad testnet, writes deployment.
 
 ```
 app/
-  page.tsx                    # UI: search, score gauge, metric breakdown, honesty panel
+  page.tsx                    # UI: search, score gauge, metric breakdown, AI explanation, honesty panel
   api/score/[address]/route.ts# GET /api/score/:address -> deterministic JSON score
+  api/explain/route.ts        # POST /api/explain -> plain-English narration (LLM or fallback)
 lib/
   monad.ts                    # public-RPC reader (balance, nonce, code, nonce binary search)
   engine.ts                   # deterministic scoring engine (no LLM, no invented numbers)
+  explain.ts                  # explanation layer: narrates a score, never computes it
   types.ts                    # shared types
 contracts/
   TrustRegistry.sol           # on-chain, tamper-evident attestation registry
@@ -150,8 +198,7 @@ scripts/
 
 - Wallet-connected "attest on-chain" button (write a score via your own wallet).
 - Read and display existing on-chain attestations for an address.
-- Optional AI layer that *explains* a score in plain English — strictly on top
-  of the deterministic number, never producing it.
+- Historical score charts once a richer free data source is available.
 
 ## Disclaimer
 
