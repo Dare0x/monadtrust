@@ -20,7 +20,11 @@
 
 import { OnChainActivity } from "./types";
 
-const RPC_URL = process.env.MONAD_RPC_URL ?? "https://testnet-rpc.monad.xyz";
+// Note the `.trim() ||` (not `??`): a deploy platform may inject this var as an
+// empty string, which `??` would NOT replace — an empty RPC URL would break the
+// app. Treat blank/whitespace as "not set" and fall back to the public default.
+const RPC_URL =
+  process.env.MONAD_RPC_URL?.trim() || "https://testnet-rpc.monad.xyz";
 
 // Stay comfortably inside the ~8.99M-block pruning boundary so historical
 // reads don't fail. ~8.0M blocks ≈ 28 days of visibility, with margin.
