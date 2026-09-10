@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import type { TrustScoreResult } from "@/lib/types";
+import deployment from "@/contracts/deployment.json";
 
 const EXAMPLES: { label: string; address: string }[] = [
   { label: "High-activity account", address: "0x6f49a8f621353f12378d0046e7d7e4b9b249dc9e" },
@@ -25,6 +26,12 @@ const BAND_COLOR: Record<string, string> = {
 };
 
 const EXPLORER = "https://testnet.monadscan.com/address/";
+
+// The live TrustRegistry contract, read from contracts/deployment.json if deployed.
+const REGISTRY: { address: string } | null =
+  deployment && typeof (deployment as { address?: string }).address === "string"
+    ? { address: (deployment as { address: string }).address }
+    : null;
 
 export default function Home() {
   const [input, setInput] = useState("");
@@ -66,6 +73,52 @@ export default function Home() {
         <strong>no AI-invented scores</strong>. Paste an address to see exactly
         how trustworthy its on-chain history is, and why.
       </p>
+
+      {REGISTRY && (
+        <a
+          className="chainbadge"
+          href={`${EXPLORER}${REGISTRY.address}`}
+          target="_blank"
+          rel="noreferrer"
+          title="MonadTrust TrustRegistry — live on Monad testnet"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            alignSelf: "flex-start",
+            margin: "0 0 22px",
+            padding: "6px 12px",
+            borderRadius: 999,
+            border: "1px solid var(--border-strong)",
+            color: "var(--text-dim)",
+            fontSize: 13,
+            textDecoration: "none",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <span
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: 999,
+              background: "var(--green)",
+              display: "inline-block",
+              boxShadow: "0 0 8px var(--green)",
+            }}
+          />
+          Live on-chain registry ·{" "}
+          <span
+            style={{
+              color: "var(--text)",
+              fontFamily:
+                "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+            }}
+          >
+            {REGISTRY.address.slice(0, 6)}…{REGISTRY.address.slice(-4)}
+          </span>{" "}
+          ↗
+        </a>
+      )}
 
       <div className="search">
         <input
