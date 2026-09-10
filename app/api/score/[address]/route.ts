@@ -12,6 +12,9 @@ import { computeTrustScore } from "@/lib/engine";
 // Always run fresh — chain state changes constantly, never cache a score.
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+// The nonce binary-search makes ~a dozen sequential RPC calls; give it headroom
+// past the platform's default 10s function limit for very active accounts.
+export const maxDuration = 30;
 
 const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
 

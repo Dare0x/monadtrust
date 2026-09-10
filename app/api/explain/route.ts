@@ -13,6 +13,8 @@ import type { TrustScoreResult } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+// The LLM path can take a few seconds; keep headroom past the 10s default.
+export const maxDuration = 30;
 
 const BANDS = new Set(["high", "medium", "low", "new"]);
 
