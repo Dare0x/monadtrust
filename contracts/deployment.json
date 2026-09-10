@@ -1,0 +1,9 @@
+{
+  "contract": "TrustRegistry",
+  "chain": "monad-testnet",
+  "chainId": 10143,
+  "address": "0xD276995C889D6A42343E699009F419C9d4B3AdB9",
+  "deployer": "0x8254530ebD4bD6494B2D7Fff2B31D3b9420652C9",
+  "txHash": "0x3ef4a5f319de86421354a44492479cb32a02ea8f894c7e62d988a2bf5489fa8e",
+  "deployedAt": "2026-09-10T17:35:55.802Z"
+}

@@ -1,0 +1,30 @@
+{
+  "name": "monadtrust",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "test:engine": "tsx scripts/test-engine.ts",
+    "test:monad": "tsx scripts/test-monad.ts",
+    "compile:contract": "tsx scripts/compile-contract.ts",
+    "gen:wallet": "tsx scripts/gen-wallet.ts",
+    "deploy:contract": "tsx scripts/deploy-contract.ts"
+  },
+  "dependencies": {
+    "ethers": "^6.17.0",
+    "next": "15.5.4",
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "solc": "^0.8.24",
+    "tsx": "^4.19.2",
+    "typescript": "^5"
+  }
+}

@@ -1,0 +1,187 @@
+{
+  "contractName": "TrustRegistry",
+  "compiler": "solc 0.8.24 (optimizer runs=200)",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "uint8",
+          "name": "score",
+          "type": "uint8"
+        }
+      ],
+      "name": "ScoreOutOfRange",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ZeroSubject",
+      "type": "error"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "attester",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "subject",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint8",
+          "name": "score",
+          "type": "uint8"
+        },
+        {
+          "indexed": false,
+          "internalType": "enum TrustRegistry.Band",
+          "name": "band",
+          "type": "uint8"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes32",
+          "name": "metricsHash",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint64",
+          "name": "timestamp",
+          "type": "uint64"
+        }
+      ],
+      "name": "Attested",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "subject",
+          "type": "address"
+        },
+        {
+          "internalType": "uint8",
+          "name": "score",
+          "type": "uint8"
+        },
+        {
+          "internalType": "enum TrustRegistry.Band",
+          "name": "band",
+          "type": "uint8"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "metricsHash",
+          "type": "bytes32"
+        }
+      ],
+      "name": "attest",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "attester",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "subject",
+          "type": "address"
+        }
+      ],
+      "name": "getAttestation",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "found",
+          "type": "bool"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint8",
+              "name": "score",
+              "type": "uint8"
+            },
+            {
+              "internalType": "enum TrustRegistry.Band",
+              "name": "band",
+              "type": "uint8"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "metricsHash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "uint64",
+              "name": "timestamp",
+              "type": "uint64"
+            },
+            {
+              "internalType": "bool",
+              "name": "exists",
+              "type": "bool"
+            }
+          ],
+          "internalType": "struct TrustRegistry.Attestation",
+          "name": "attestation",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "attester",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "subject",
+          "type": "address"
+        }
+      ],
+      "name": "hasAttestation",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "totalAttestations",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x608060405234801561000f575f80fd5b506105608061001d5f395ff3fe608060405234801561000f575f80fd5b506004361061004a575f3560e01c8063604857421461004e57806393b8a4c81461006a578063e8d55ccf1461008d578063fe7b5104146100ae575b5f80fd5b61005760015481565b6040519081526020015b60405180910390f35b61007d6100783660046103c2565b6100c3565b6040519015158152602001610061565b6100a061009b3660046103c2565b6100fa565b604051610061929190610427565b6100c16100bc366004610481565b6101c9565b005b6001600160a01b038281165f9081526020818152604080832093851683529290522060020154600160401b900460ff165b92915050565b6040805160a080820183525f808352602080840182905283850182905260608401829052608084018290526001600160a01b038781168352828252858320908716835281528482208551938401909552845460ff8082168552929586949390928401916101009004166003811115610174576101746103f3565b6003811115610185576101856103f3565b81526001820154602082015260029091015467ffffffffffffffff81166040830152600160401b900460ff1615156060909101526080810151969095509350505050565b60648360ff1611156101f757604051632d6270c560e21b815260ff8416600482015260240160405180910390fd5b6001600160a01b03841661021e57604051638782a30760e01b815260040160405180910390fd5b335f908152602081815260408083206001600160a01b038816845290915290206002810154600160401b900460ff16610268576001805f82825461026291906104d5565b90915550505b6040518060a001604052808560ff16815260200184600381111561028e5761028e6103f3565b8152602080820185905267ffffffffffffffff42166040808401919091526001606090930192909252335f9081528082528281206001600160a01b038a1682528252919091208251815460ff90911660ff19821681178355928401519192839161ffff191617610100836003811115610309576103096103f3565b021790555060408281015160018301556060830151600290920180546080909401511515600160401b0268ffffffffffffffffff1990941667ffffffffffffffff90931692909217929092179055516001600160a01b0386169033907fc02da1ee59d77c5809e3e311bd53b9dce1dc3c5407137195f4e271f7452b0318906103989088908890889042906104f4565b60405180910390a35050505050565b80356001600160a01b03811681146103bd575f80fd5b919050565b5f80604083850312156103d3575f80fd5b6103dc836103a7565b91506103ea602084016103a7565b90509250929050565b634e487b7160e01b5f52602160045260245ffd5b6004811061042357634e487b7160e01b5f52602160045260245ffd5b9052565b5f60c082019050831515825260ff8351166020830152602083015161044f6040840182610407565b506040830151606083015267ffffffffffffffff60608401511660808301526080830151151560a08301529392505050565b5f805f8060808587031215610494575f80fd5b61049d856103a7565b9350602085013560ff811681146104b2575f80fd5b92506040850135600481106104c5575f80fd5b9396929550929360600135925050565b808201808211156100f457634e487b7160e01b5f52601160045260245ffd5b60ff851681526080810161050b6020830186610407565b83604083015267ffffffffffffffff831660608301529594505050505056fea2646970667358221220b770c528100260a881a6aa8cf58eacb8e2d90011182351b0459e2e207d5812e564736f6c63430008180033"
+}
