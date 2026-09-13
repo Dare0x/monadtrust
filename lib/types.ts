@@ -31,6 +31,10 @@ export interface OnChainActivity {
   // True when the account's first activity predates our archive window, so
   // its real age is *at least* (now - firstSeen), possibly much more.
   firstSeenBeforeWindow: boolean;
+  // True when the account's most recent activity ALSO predates our archive
+  // window (it had already reached its final nonce before the window began),
+  // so "last active" is a lower bound: at least (now - lastSeen), maybe more.
+  lastSeenBeforeWindow: boolean;
   // How many days of history the RPC actually let us inspect (the archive
   // window). Used for honest UI copy, e.g. "within the visible ~31 days".
   windowDays: number;
@@ -61,6 +65,7 @@ export interface TrustScoreResult {
     ageIsLowerBound: boolean; // true when the real age exceeds what we can see
     balance: number;
     lastActiveDays: number | null;
+    lastActiveIsLowerBound: boolean; // true when real idle time exceeds what we can see
   };
   visibility: {
     // Honest disclosure of what we could and couldn't inspect for free.

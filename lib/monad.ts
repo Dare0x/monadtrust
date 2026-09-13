@@ -180,10 +180,16 @@ export async function fetchOnChainActivity(
   let firstSeen: number | null = null;
   let lastSeen: number | null = null;
   let firstSeenBeforeWindow = false;
+  let lastSeenBeforeWindow = false;
 
   // Age/recency only make sense once the account has sent at least one tx.
   if (txCount > 0) {
     const nonceAtWindowStart = await readNonce(scannedFromBlock);
+
+    // If the account had already reached its final nonce before our window
+    // began, its most recent transaction predates what we can see — so
+    // "last active" is only a lower bound (at least this long ago).
+    if (nonceAtWindowStart >= txCount) lastSeenBeforeWindow = true;
 
     if (nonceAtWindowStart >= 1) {
       // Already active before our visible window began: age is a lower bound.
@@ -220,6 +226,7 @@ export async function fetchOnChainActivity(
     firstSeen,
     lastSeen,
     firstSeenBeforeWindow,
+    lastSeenBeforeWindow,
     windowDays: Math.round((WINDOW_BLOCKS * 0.3) / 86_400),
     latestBlock,
     scannedFromBlock,

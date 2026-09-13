@@ -70,7 +70,7 @@ export function deterministicExplanation(r: TrustScoreResult): string {
       bits.push(
         s.lastActiveDays < 1
           ? "active today"
-          : `last active ${s.lastActiveDays} day${s.lastActiveDays === 1 ? "" : "s"} ago`
+          : `last active ${s.lastActiveIsLowerBound ? "at least " : ""}${s.lastActiveDays} day${s.lastActiveDays === 1 ? "" : "s"} ago`
       );
     }
     parts.push(`It shows ${bits.join(", ")}.`);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import type { TrustScoreResult } from "@/lib/types";
 import deployment from "@/contracts/deployment.json";
 
@@ -43,10 +43,14 @@ export default function Home() {
     source: "llm" | "fallback";
   } | null>(null);
   const [explaining, setExplaining] = useState(false);
+  // Monotonic token so a slow response from an earlier lookup can't overwrite
+  // the results of a newer one (e.g. two example chips clicked in quick succession).
+  const runSeq = useRef(0);
 
   const run = useCallback(async (address: string) => {
     const addr = address.trim();
     if (!addr) return;
+    const seq = ++runSeq.current;
     setLoading(true);
     setError(null);
     setResult(null);
@@ -54,8 +58,9 @@ export default function Home() {
 
     let scored: TrustScoreResult | null = null;
     try {
-      const res = await fetch(`/api/score/${addr}`);
+      const res = await fetch(`/api/score/${encodeURIComponent(addr)}`);
       const data = await res.json();
+      if (seq !== runSeq.current) return; // superseded by a newer lookup
       if (!res.ok) {
         setError(data.error ?? "Something went wrong.");
       } else {
@@ -63,32 +68,34 @@ export default function Home() {
         setResult(scored);
       }
     } catch {
+      if (seq !== runSeq.current) return;
       setError("Network error — could not reach the scoring service.");
     } finally {
-      setLoading(false);
+      if (seq === runSeq.current) setLoading(false);
     }
 
+    if (!scored) return;
+
     // Explanation is a non-blocking enhancement: the score is already shown.
-    if (scored) {
-      setExplaining(true);
-      try {
-        const er = await fetch("/api/explain", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(scored),
+    setExplaining(true);
+    try {
+      const er = await fetch("/api/explain", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(scored),
+      });
+      const ed = await er.json();
+      if (seq !== runSeq.current) return; // stale explanation — drop it
+      if (er.ok && typeof ed?.text === "string") {
+        setExplanation({
+          text: ed.text,
+          source: ed.source === "llm" ? "llm" : "fallback",
         });
-        const ed = await er.json();
-        if (er.ok && typeof ed?.text === "string") {
-          setExplanation({
-            text: ed.text,
-            source: ed.source === "llm" ? "llm" : "fallback",
-          });
-        }
-      } catch {
-        /* explanation is optional — never block the score on it */
-      } finally {
-        setExplaining(false);
       }
+    } catch {
+      /* explanation is optional — never block the score on it */
+    } finally {
+      if (seq === runSeq.current) setExplaining(false);
     }
   }, []);
 
@@ -337,7 +344,7 @@ function ScoreCard({
               ? "—"
               : s.lastActiveDays < 1
               ? "today"
-              : `${s.lastActiveDays} days ago`}
+              : `${s.lastActiveIsLowerBound ? "≥ " : ""}${s.lastActiveDays} days ago`}
           </dd>
           <dt>Balance</dt>
           <dd>{s.balance.toFixed(4)} MON</dd>

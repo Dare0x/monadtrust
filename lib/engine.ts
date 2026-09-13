@@ -35,12 +35,15 @@ function daysSince(unixSeconds: number): number {
 /** Longevity: older accounts are harder to fabricate cheaply. */
 function computeAge(activity: OnChainActivity): MetricBreakdown {
   if (activity.firstSeen === null) {
+    const neverSent = activity.txCount === 0;
     return {
       key: "age",
       label: "Account age",
       value: 12, // no outbound history: treated cautiously, not as zero
-      raw: "no outbound txns",
-      detail: "This address has never sent a transaction, so it has no age.",
+      raw: neverSent ? "no outbound txns" : "age unavailable",
+      detail: neverSent
+        ? "This address has never sent a transaction, so it has no age."
+        : "This address has sent transactions, but its first-seen block could not be read from the RPC just now.",
     };
   }
   const age = daysSince(activity.firstSeen);
@@ -101,6 +104,19 @@ function computeRecency(activity: OnChainActivity): MetricBreakdown {
   }
   const idle = daysSince(activity.lastSeen);
   const score = clamp(100 - (idle / RECENCY_HORIZON_DAYS) * 100);
+  if (activity.lastSeenBeforeWindow) {
+    // Its most recent activity predates our visible window, so idle time is a
+    // lower bound — say so plainly rather than implying we know it exactly.
+    return {
+      key: "recency",
+      label: "Recent activity",
+      value: score,
+      raw: `≥ ${idle.toFixed(0)}d ago`,
+      detail: `Most recent transaction predates our visible ${activity.windowDays}-day window, so it was at least ${idle.toFixed(
+        0
+      )} day(s) ago (possibly longer).`,
+    };
+  }
   return {
     key: "recency",
     label: "Recent activity",
@@ -203,6 +219,7 @@ export function computeTrustScore(
       ageIsLowerBound: activity.firstSeenBeforeWindow,
       balance: activity.balance,
       lastActiveDays: lastActiveDays === null ? null : Math.round(lastActiveDays),
+      lastActiveIsLowerBound: activity.lastSeenBeforeWindow,
     },
     visibility: {
       windowDays: activity.windowDays,

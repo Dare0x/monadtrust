@@ -13,6 +13,7 @@ function activity(over: Partial<OnChainActivity>): OnChainActivity {
     firstSeen: null,
     lastSeen: null,
     firstSeenBeforeWindow: false,
+    lastSeenBeforeWindow: false,
     windowDays: 28,
     latestBlock: 61_000_000,
     scannedFromBlock: 53_000_000,
@@ -62,6 +63,17 @@ const highVolume = activity({
   balance: 0.5,
 });
 
+// Old account whose ENTIRE history predates our visible window, so both age
+// and last-active are lower bounds. Exercises the "≥ Nd ago" honesty path.
+const preWindow = activity({
+  txCount: 1,
+  firstSeen: now - 28 * DAY,
+  firstSeenBeforeWindow: true,
+  lastSeen: now - 28 * DAY,
+  lastSeenBeforeWindow: true,
+  balance: 0,
+});
+
 // Empty address: nothing on chain at all.
 const empty = activity({ balance: 0 });
 
@@ -71,6 +83,7 @@ for (const [name, a] of [
   ["Dormant (idle 20d)", dormant],
   ["Contract / agent (bytecode)", contract],
   ["High-volume automated", highVolume],
+  ["Pre-window (all history older than window)", preWindow],
   ["Empty (no activity)", empty],
 ] as const) {
   const r = computeTrustScore(a, name);
