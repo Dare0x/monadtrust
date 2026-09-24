@@ -49,11 +49,12 @@ export default function BirthStrip({ audit }: { audit: AgentAudit }) {
   old.forEach((r, i) => posOf.set(r.address, 10 + ((i + 0.5) / Math.max(1, old.length)) * (OLD_ZONE - 20)));
   dated.forEach((r) => posOf.set(r.address, x((audit.asOf.timestamp - (r.facts.firstTxAt as number)) / 3600)));
 
+  // Only ticks well inside the visible window (mainnet's is ~7 days, so no "1 week").
   const axis = [
     { h: 1, label: compact ? "1 h" : "1 hour" },
     { h: 24, label: compact ? "1 d" : "1 day" },
     { h: 24 * 7, label: compact ? "1 wk" : "1 week" },
-  ];
+  ].filter((a) => a.h < maxH * 0.6);
 
   const struckCount = audit.reviewers.filter((r) => !r.counted).length;
   const biggest = audit.clusters[0];
