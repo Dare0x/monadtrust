@@ -8,6 +8,12 @@ import type { AgentAudit, ReviewerVerdict } from "@/lib/types";
 import { useNet } from "@/components/useNet";
 
 
+interface OnchainInfo {
+  reviewerLists: string | null;
+  publisher: string | null;
+  list: { published: false } | { published: true; reviewers: number; auditHash: string; sourceBlock: number; publishedAt: number } | null;
+}
+
 interface Payload {
   audit: AgentAudit;
   summary: { text: string; source: "llm" | "fallback" };
@@ -80,6 +86,21 @@ function AgentPage() {
   const [data, setData] = useState<Payload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [onchain, setOnchain] = useState<OnchainInfo | null>(null);
+
+  // What MonadTrust has published to ReviewerLists for this agent (v1 API).
+  useEffect(() => {
+    let alive = true;
+    setOnchain(null);
+    fetch(withNet(`/api/v1/agents/${encodeURIComponent(id)}`))
+      .then((r) => (r.ok ? r.json() : null))
+      .then((b) => alive && b?.onchain && setOnchain(b.onchain as OnchainInfo))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, net]);
 
   useEffect(() => {
     let alive = true;
@@ -335,6 +356,34 @@ function AgentPage() {
               ))}
             </tbody>
           </table>
+        </section>
+      )}
+
+      {onchain?.reviewerLists && onchain.list?.published && (
+        <section className="block" aria-labelledby="published-title">
+          <h2 className="block-title" id="published-title">
+            Published on-chain
+          </h2>
+          <p className="block-intro">
+            MonadTrust published this agent&apos;s counted reviewers ({onchain.list.reviewers}) to{" "}
+            <a className="hex" href={EXPLORER + onchain.reviewerLists} target="_blank" rel="noreferrer">
+              ReviewerLists
+            </a>{" "}
+            on {cfg.name}, from the audit read at block {onchain.list.sourceBlock.toLocaleString()}. Any contract can
+            call <code>getSummary(publisher, {a.agent.agentId}, tag1, tag2)</code> on it to get the rating counting only
+            these reviewers.
+          </p>
+          <dl className="facts">
+            <dt>Contract</dt>
+            <dd>{onchain.reviewerLists}</dd>
+            <dt>Publisher</dt>
+            <dd>{onchain.publisher}</dd>
+            <dt>Audit fingerprint on-chain</dt>
+            <dd>
+              {onchain.list.auditHash}
+              {onchain.list.auditHash === a.auditHash ? " (matches this report)" : " (from an earlier audit)"}
+            </dd>
+          </dl>
         </section>
       )}
 

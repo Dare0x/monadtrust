@@ -2,9 +2,11 @@
   "testnet": {
     "contract": "ReviewerLists",
     "chainId": 10143,
-    "address": null,
+    "address": "0x9cFb885F029e239c254ddB9F690d375F0684D2F7",
     "reputationRegistry": "0x8004B663056A597Dffe9eCcC1965A193B7388713",
-    "publisher": null
+    "publisher": "0x3Ba58C63462B6fb640F5821e59d704ea4C36c8FF",
+    "txHash": "0x276e0fe94be74755ee430e56cdd89895b1d1c8d832b26f242b2d212f0c5f2c8a",
+    "deployedAt": "2026-09-24T08:10:05.402Z"
   },
   "mainnet": {
     "contract": "ReviewerLists",
