@@ -53,8 +53,9 @@ change any number. The page says which of the two wrote it.
 
 Monad's free RPC caps `eth_getLogs` at 100 blocks, so event history can't be scanned for free. Everything here uses
 view functions (`readAllFeedback`, `getClients`, `ownerOf`, `tokenURI`) and historical `eth_getTransactionCount`,
-batched through a small JSON-RPC client with endpoint fallback (`lib/rpc.ts`). An agent with 60 reviewers takes a
-few hundred reads.
+batched through a small JSON-RPC client that paces itself under each endpoint's rate limit and sends historical
+reads only to endpoints that keep that history (`lib/rpc.ts`). Agent discovery reads 1,500 registry slots in a
+handful of Multicall3 calls. An agent with 60 reviewers takes a few hundred reads.
 
 ## What it can't see
 
@@ -78,6 +79,7 @@ Other commands:
 npm test             # scoring engine, audit rules, and a full end-to-end run against a mock Monad RPC
 npm run check:live   # read the real ERC-8004 registries on Monad testnet and audit the busiest agent
 npm run mock:rpc     # offline mock chain; then MONAD_RPC_URLS=http://127.0.0.1:8545 npm run dev
+npm run snapshot     # save the agent list and audits of the busiest agents to data/ (served instantly, refreshed live)
 ```
 
 Optional environment variables (see `.env.example`): `MONAD_RPC_URLS` (comma-separated, e.g. a free QuickNode or
