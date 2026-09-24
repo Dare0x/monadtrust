@@ -59,12 +59,9 @@ export default function WalletPage() {
   return (
     <main>
       <section className="hero">
-        <p className="eyebrow">
-          <span className="net-dot" aria-hidden="true" />
-          Single-wallet check
-        </p>
+        <p className="kicker">Single-wallet check · Monad testnet</p>
         <h1 className="hero-title">
-          How real is <span className="grad">this wallet?</span>
+          How much has this wallet <em>actually done?</em>
         </h1>
         <p className="hero-lede">
           The same measure MonadTrust applies to every reviewer: how long a wallet has existed on Monad testnet, how

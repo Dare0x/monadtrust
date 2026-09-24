@@ -80,16 +80,13 @@ export default function Home() {
   return (
     <main>
       <section className="hero">
-        <p className="eyebrow">
-          <span className="net-dot" aria-hidden="true" />
-          ERC-8004 review audit · live on Monad testnet
-        </p>
+        <p className="kicker">ERC-8004 review audit · Monad testnet</p>
         <h1 className="hero-title">
-          Every agent has reviews. <span className="grad">Not every review is real.</span>
+          Who wrote this agent&apos;s <em>reviews?</em>
         </h1>
         <p className="hero-lede">
-          Any wallet can rate an agent, and a wallet made a minute ago counts the same as a customer of five months.
-          MonadTrust checks every reviewer and recomputes the rating from the ones that hold up.
+          Any wallet can rate an AI agent under ERC-8004, and a wallet made a minute ago counts the same as a customer
+          of five months. MonadTrust looks up every reviewer and recomputes the rating from the ones that hold up.
         </p>
         <form
           className="lookup"
@@ -111,76 +108,60 @@ export default function Home() {
             onChange={(e) => setId(e.target.value)}
           />
           <button className="button" type="submit">
-            Audit reviews
+            Check reviews
           </button>
         </form>
-        {formError ? (
-          <p className="form-error">{formError}</p>
-        ) : (
-          <p className="form-note">Agent numbers come from the ERC-8004 identity registry.</p>
-        )}
+        {formError && <p className="form-error">{formError}</p>}
 
-        <dl className="stats">
-          <div>
-            <dt>Agents scanned</dt>
-            <dd>{dir ? dir.scanned.toLocaleString() : "—"}</dd>
-          </div>
-          <div>
-            <dt>With reviews</dt>
-            <dd>{dir ? dir.agents.length : "—"}</dd>
-          </div>
-          <div>
-            <dt>Reviewers checked</dt>
-            <dd>{dir ? dir.stats.reviewersChecked : "—"}</dd>
-          </div>
-          <div>
-            <dt>Reviews struck</dt>
-            <dd className="stat-bad">{dir ? dir.stats.struck : "—"}</dd>
-          </div>
-        </dl>
+        {dir && (
+          <p className="tally">
+            <span>{dir.scanned.toLocaleString()}</span> agents scanned · <span>{dir.agents.length}</span> with reviews ·{" "}
+            <span>{dir.stats.reviewersChecked}</span> reviewers checked ·{" "}
+            <span className="tally-bad">{dir.stats.struck}</span> reviews struck
+          </p>
+        )}
       </section>
 
       {f && (
         <Link href={`/agent/${f.agentId}`} className="catch" aria-labelledby="catch-title">
-          <div className="catch-body">
-            <p className="catch-kicker">
-              <span className="pulse" aria-hidden="true" />
-              Caught on-chain · checked {ago(f.checkedAt)}
-            </p>
-            <h2 className="catch-title" id="catch-title">
-              {f.name ?? `Agent #${f.agentId}`}: {f.struck} of {f.reviewers} reviews don&apos;t hold up
-            </h2>
-            <p className="catch-headline">{f.headline}</p>
-            <div className="dots" aria-label={`${f.reviewers - f.struck} counted, ${f.struck} struck`}>
-              {f.marks.map((ok, i) => (
-                <span key={i} className={ok ? "dot dot-good" : "dot dot-bad"} />
-              ))}
+          <p className="catch-kicker">
+            Case: agent #{f.agentId}
+            {f.name ? ` (${f.name})` : ""} · checked {ago(f.checkedAt)}
+          </p>
+          <div className="catch-grid">
+            <div>
+              <h2 className="catch-title" id="catch-title">
+                {f.headline}
+              </h2>
+              <div className="dots" aria-label={`${f.reviewers - f.struck} counted, ${f.struck} struck`}>
+                {f.marks.map((ok, i) => (
+                  <span key={i} className={ok ? "dot dot-good" : "dot dot-bad"} />
+                ))}
+              </div>
+              <p className="catch-legend">One square per reviewer wallet. Red ones don&apos;t count.</p>
+            </div>
+            <div className="catch-score">
+              <div className="catch-num">
+                <span className="catch-label">Listed rating</span>
+                <span className="catch-value catch-listed">{fmt(f.listed)}</span>
+              </div>
+              {f.counted === null ? (
+                <div className="catch-num">
+                  <span className="catch-label">Reviews that hold up</span>
+                  <span className="catch-value catch-zero">
+                    {f.reviewers - f.struck}
+                    <span className="catch-of"> of {f.reviewers}</span>
+                  </span>
+                </div>
+              ) : (
+                <div className="catch-num">
+                  <span className="catch-label">Counted rating</span>
+                  <span className="catch-value catch-real">{fmt(f.counted)}</span>
+                </div>
+              )}
             </div>
           </div>
-          <div className="catch-score">
-            <div className="catch-num">
-              <span className="catch-label">Listed</span>
-              <span className="catch-value catch-listed">{fmt(f.listed)}</span>
-            </div>
-            <span className="catch-arrow" aria-hidden="true">
-              →
-            </span>
-            {f.counted === null ? (
-              <div className="catch-num">
-                <span className="catch-label">Hold up</span>
-                <span className="catch-value catch-zero">
-                  {f.reviewers - f.struck}
-                  <span className="catch-of">/{f.reviewers}</span>
-                </span>
-              </div>
-            ) : (
-              <div className="catch-num">
-                <span className="catch-label">Real</span>
-                <span className="catch-value catch-real">{fmt(f.counted)}</span>
-              </div>
-            )}
-            <span className="catch-go">Open the report →</span>
-          </div>
+          <span className="catch-go">Read the full report →</span>
         </Link>
       )}
 
@@ -222,7 +203,7 @@ export default function Home() {
                   </span>
                 </span>
                 <span className="directory-verdict">
-                  {pill ? <span className={`pill pill-${pill.tone}`}>{pill.text}</span> : <span className="pill pill-ghost">Audit</span>}
+                  {pill ? <span className={`pill pill-${pill.tone}`}>{pill.text}</span> : <span className="directory-go">Check →</span>}
                 </span>
               </Link>
             );
@@ -240,28 +221,24 @@ export default function Home() {
             that list to others. These rules build it, the same way for every agent.
           </p>
         </div>
-        <div className="method">
-          <div className="method-step">
-            <span className="method-n">01</span>
+        <ol className="method">
+          <li>
             <h3>Read every reviewer</h3>
             <p>Each wallet&apos;s age, how much it does apart from reviewing, and its balance, straight from the chain.</p>
-          </div>
-          <div className="method-step">
-            <span className="method-n">02</span>
+          </li>
+          <li>
             <h3>Find the batches</h3>
             <p>Three or more reviewers created within 30 minutes of each other lose half their score.</p>
-          </div>
-          <div className="method-step">
-            <span className="method-n">03</span>
+          </li>
+          <li>
             <h3>Draw the line</h3>
             <p>A reviewer counts at 40 out of 100. The agent&apos;s own wallet never counts.</p>
-          </div>
-          <div className="method-step">
-            <span className="method-n">04</span>
+          </li>
+          <li>
             <h3>Recount on-chain</h3>
             <p>Average only counted reviews. The registry&apos;s own getSummary returns the same number.</p>
-          </div>
-        </div>
+          </li>
+        </ol>
       </section>
     </main>
   );

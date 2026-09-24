@@ -66,7 +66,7 @@ export default function BirthStrip({ audit }: { audit: AgentAudit }) {
     <figure className="strip" ref={box}>
       <svg viewBox={`0 -30 ${W} 170`} role="img" aria-label={label}>
         {/* Older-than-window zone */}
-        <rect x={0} y={TICK_TOP - 6} width={OLD_ZONE} height={TICK_BOTTOM - TICK_TOP + 12} fill="var(--surface-2)" rx={8} />
+        <rect x={0} y={TICK_TOP - 6} width={OLD_ZONE} height={TICK_BOTTOM - TICK_TOP + 12} fill="var(--surface-2)" />
         <text x={OLD_ZONE / 2} y={TICK_BOTTOM + 26} textAnchor="middle" fontSize={compact ? 14 : 16} fill="var(--ink-2)">
           {compact ? "older" : `older than ${audit.asOf.windowDays} days`}
         </text>
@@ -126,7 +126,7 @@ export default function BirthStrip({ audit }: { audit: AgentAudit }) {
               y2={TICK_BOTTOM}
               stroke={r.counted ? "var(--counted)" : "var(--struck)"}
               strokeWidth={4}
-              strokeLinecap="round"
+              
               strokeOpacity={0.85}
             >
               <title>
