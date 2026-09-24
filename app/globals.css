@@ -925,6 +925,50 @@ td {
   color: var(--text-2);
 }
 
+/* ---------- Docs ---------- */
+
+code {
+  font-family: var(--mono);
+  font-size: 0.88em;
+  color: var(--text);
+}
+.docs-toc {
+  margin-top: 28px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  font-size: 0.9rem;
+}
+.docs .block {
+  scroll-margin-top: 24px;
+}
+.docs .code {
+  white-space: pre;
+  word-break: normal;
+  overflow-x: auto;
+}
+.endpoints {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 10px 24px;
+  font-size: 0.92rem;
+}
+.endpoints dd {
+  color: var(--text-2);
+}
+.docs td:first-child {
+  color: var(--text);
+  white-space: nowrap;
+  padding-right: 24px;
+}
+.docs td {
+  color: var(--text-2);
+}
+
 /* ---------- Wallet check ---------- */
 
 .wallet-score {
@@ -1055,6 +1099,9 @@ td {
   }
   .metric-row {
     grid-template-columns: 1fr auto;
+  }
+  .endpoints {
+    grid-template-columns: 1fr;
   }
   .metric-bar {
     grid-column: 1 / -1;

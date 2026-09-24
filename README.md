@@ -18,6 +18,25 @@ comes from.
 MonadTrust produces that list, for any agent, with rules anyone can read and re-run. The page shows the rating the
 registry returns when given the list, plus the exact call so anyone (or any contract) can reproduce it on-chain.
 
+## Use it from your app or contract
+
+MonadTrust is meant to be built on. Full docs: [monadtrust.vercel.app/docs](https://monadtrust.vercel.app/docs).
+
+- **HTTP API** (no key, CORS open): `GET /api/v1/agents/:id` returns the verdict, the counted-reviewer list, listed vs
+  counted rating per tag, and what's published on-chain. `GET /api/v1/agents` lists reviewed agents.
+- **On-chain**: [`contracts/ReviewerLists.sol`](contracts/ReviewerLists.sol). Anyone can publish a counted-reviewer list
+  for an agent; each publisher's lists are separate. `getSummary(publisher, agentId, tag1, tag2)` forwards that list to
+  the ERC-8004 Reputation Registry, so a contract gets the filtered rating in one call. Each list records the audit
+  hash and source block it came from.
+- **Run it yourself**: `npm run audit -- <agentId>` runs the same deterministic audit against any Monad RPC and prints
+  the counted list and `auditHash`. No need to trust our server.
+
+```bash
+npm run test:contract   # ReviewerLists checks against the live registry (read-only, costs nothing)
+npm run deploy:lists    # deploy ReviewerLists (needs a funded testnet key in .env)
+npm run publish:lists   # publish MonadTrust's lists for the audited agents
+```
+
 ## How a review gets counted
 
 For each wallet that reviewed the agent, read from Monad testnet's public RPC:
@@ -104,7 +123,8 @@ lib/
   engine.ts        single-wallet score
 components/BirthStrip.tsx   timeline of when each reviewer wallet was created
 app/                        pages and API routes
-contracts/TrustRegistry.sol attestation registry, deployed on Monad testnet
+contracts/ReviewerLists.sol  counted-reviewer lists any contract can read
+contracts/TrustRegistry.sol  v1 attestation registry, deployed on Monad testnet
 scripts/                    tests, mock chain, live check
 ```
 

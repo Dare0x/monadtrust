@@ -24,6 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <nav className="site-nav" aria-label="Main">
               <Link href="/">Agents</Link>
               <Link href="/wallet">Check a wallet</Link>
+              <Link href="/docs">Docs</Link>
               <a href="https://github.com/Dare0x/monadtrust" target="_blank" rel="noreferrer">
                 Source
               </a>

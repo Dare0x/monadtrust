@@ -17,7 +17,11 @@
     "test:mock": "tsx scripts/test-mock-rpc.ts",
     "mock:rpc": "tsx scripts/mock-chain.ts",
     "check:live": "tsx scripts/probe-erc8004.ts",
-    "snapshot": "tsx scripts/snapshot-agents.ts"
+    "snapshot": "tsx scripts/snapshot-agents.ts",
+    "test:contract": "tsx scripts/test-contract.ts",
+    "deploy:lists": "tsx scripts/deploy-reviewer-lists.ts",
+    "publish:lists": "tsx scripts/publish-lists.ts",
+    "audit": "tsx scripts/audit-agent.ts"
   },
   "dependencies": {
     "ethers": "^6.17.0",

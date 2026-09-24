@@ -1,5 +1,6 @@
-// Compiles contracts/TrustRegistry.sol with solc and writes the ABI + bytecode
-// to contracts/artifacts/TrustRegistry.json. Fully offline & reproducible.
+// Compiles contracts/<Name>.sol with solc and writes the ABI + bytecode to
+// contracts/artifacts/<Name>.json. Fully offline & reproducible.
+//   npm run compile:contract -- ReviewerLists   (default: TrustRegistry)
 
 import * as fs from "fs";
 import * as path from "path";
@@ -7,16 +8,17 @@ import * as path from "path";
 import solc from "solc";
 
 const ROOT = path.join(__dirname, "..");
-const SRC = path.join(ROOT, "contracts", "TrustRegistry.sol");
+const NAME = process.argv[2] ?? "TrustRegistry";
+const SRC = path.join(ROOT, "contracts", `${NAME}.sol`);
 const OUT_DIR = path.join(ROOT, "contracts", "artifacts");
-const OUT = path.join(OUT_DIR, "TrustRegistry.json");
+const OUT = path.join(OUT_DIR, `${NAME}.json`);
 
 function main() {
   const source = fs.readFileSync(SRC, "utf8");
 
   const input = {
     language: "Solidity",
-    sources: { "TrustRegistry.sol": { content: source } },
+    sources: { [`${NAME}.sol`]: { content: source } },
     settings: {
       optimizer: { enabled: true, runs: 200 },
       outputSelection: {
@@ -39,9 +41,9 @@ function main() {
     if (w.severity !== "error") console.warn(w.formattedMessage);
   }
 
-  const contract = output.contracts["TrustRegistry.sol"].TrustRegistry;
+  const contract = output.contracts[`${NAME}.sol`][NAME];
   const artifact = {
-    contractName: "TrustRegistry",
+    contractName: NAME,
     compiler: "solc 0.8.24 (optimizer runs=200)",
     abi: contract.abi,
     bytecode: "0x" + contract.evm.bytecode.object,
@@ -50,7 +52,7 @@ function main() {
   fs.mkdirSync(OUT_DIR, { recursive: true });
   fs.writeFileSync(OUT, JSON.stringify(artifact, null, 2));
 
-  console.log("✓ Compiled TrustRegistry.sol");
+  console.log(`✓ Compiled ${NAME}.sol`);
   console.log(`  ABI entries : ${artifact.abi.length}`);
   console.log(`  Bytecode    : ${artifact.bytecode.length} chars`);
   console.log(`  Written to  : ${path.relative(ROOT, OUT)}`);
