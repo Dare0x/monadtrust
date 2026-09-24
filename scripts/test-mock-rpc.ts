@@ -8,7 +8,7 @@ import { startMockRpc, stats, sybils7 } from "./mock-chain";
 async function main() {
   const mock = await startMockRpc();
   process.env.MONAD_RPC_URLS = mock.url;
-  const { runAudit, scanReviewedAgents } = await import("../lib/service");
+  const { auditLive: runAudit, scanReviewedAgents } = await import("../lib/service");
   let failures = 0;
   const check = (name: string, ok: boolean, detail = "") => {
     console.log(`${ok ? "PASS" : "FAIL"}  ${name}${detail ? "  — " + detail : ""}`);

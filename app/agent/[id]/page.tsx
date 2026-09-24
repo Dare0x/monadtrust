@@ -133,6 +133,10 @@ export default function AgentPage() {
             {short(a.agent.owner)}
           </a>
         </p>
+        <p className="report-asof">
+          Checked at block {a.asOf.block.toLocaleString()} ·{" "}
+          {new Date(a.asOf.timestamp * 1000).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
+        </p>
       </header>
 
       <p className="finding">{a.headline}</p>

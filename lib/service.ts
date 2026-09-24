@@ -10,6 +10,7 @@ import { Interface } from "ethers";
 import { ERC8004 } from "./chain";
 import { multicall } from "./multicall";
 import snapshotFile from "../data/agents-snapshot.json";
+import savedAuditsFile from "../data/audits-snapshot.json";
 
 // Reading each reviewer takes ~25 small RPC reads. Cap how many we read in one
 // request so a heavily reviewed agent still answers in time on a free RPC.
@@ -18,12 +19,48 @@ export const MAX_REVIEWERS = Number(process.env.MAX_REVIEWERS || 60);
 export class AgentNotFoundError extends Error {}
 
 const auditCache = new Map<string, { at: number; value: AgentAudit }>();
+const auditRefresh = new Map<string, Promise<AgentAudit>>();
 const AUDIT_TTL_MS = 90_000;
+
+// Audits of the most reviewed agents, saved by `npm run snapshot`. A full
+// audit makes a few hundred rate-limited reads (about 25s on the free RPC), so
+// these open instantly and are re-read in the background.
+const SAVED_AUDITS = savedAuditsFile as unknown as Record<string, AgentAudit>;
+
+function refreshAudit(agentIdStr: string): Promise<AgentAudit> {
+  let p = auditRefresh.get(agentIdStr);
+  if (!p) {
+    p = auditLive(agentIdStr).finally(() => auditRefresh.delete(agentIdStr));
+    auditRefresh.set(agentIdStr, p);
+  }
+  return p;
+}
 
 export async function runAudit(agentIdStr: string): Promise<AgentAudit> {
   const cached = auditCache.get(agentIdStr);
   if (cached && Date.now() - cached.at < AUDIT_TTL_MS) return cached.value;
+  const stale = cached?.value ?? SAVED_AUDITS[agentIdStr];
+  if (stale) {
+    refreshAudit(agentIdStr).catch(() => {});
+    return stale;
+  }
+  return refreshAudit(agentIdStr);
+}
 
+// The clearest case of stuffed reviews we know of right now, for the homepage.
+export function featuredCatch(): AgentAudit | null {
+  const all = new Map<string, AgentAudit>(Object.entries(SAVED_AUDITS));
+  for (const [id, c] of auditCache) all.set(id, c.value);
+  let best: AgentAudit | null = null;
+  for (const a of all.values()) {
+    if (a.verdict !== "inflated") continue;
+    if (!best || a.totals.struck > best.totals.struck || (a.totals.struck === best.totals.struck && a.asOf.block > best.asOf.block)) best = a;
+  }
+  return best;
+}
+
+// Always reads the chain.
+export async function auditLive(agentIdStr: string): Promise<AgentAudit> {
   const rpc = new RpcClient();
   const agentId = BigInt(agentIdStr);
   const [ctx, agent, feedback] = await Promise.all([

@@ -50,7 +50,7 @@ export default function BirthStrip({ audit }: { audit: AgentAudit }) {
   dated.forEach((r) => posOf.set(r.address, x((audit.asOf.timestamp - (r.facts.firstTxAt as number)) / 3600)));
 
   const axis = [
-    { h: 1, label: compact ? "1 h" : "1 hour ago" },
+    { h: 1, label: compact ? "1 h" : "1 hour" },
     { h: 24, label: compact ? "1 d" : "1 day" },
     { h: 24 * 7, label: compact ? "1 wk" : "1 week" },
   ];

@@ -15,7 +15,7 @@ export const maxDuration = 60;
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!/^\d{1,12}$/.test(id)) {
-    return NextResponse.json({ error: "Agent IDs are whole numbers, like 1831." }, { status: 400 });
+    return NextResponse.json({ error: "Agent IDs are whole numbers, like 1924." }, { status: 400 });
   }
   try {
     const audit = await runAudit(String(BigInt(id)));

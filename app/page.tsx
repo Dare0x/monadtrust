@@ -5,10 +5,31 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { AgentListing } from "@/lib/types";
 
+interface Featured {
+  agentId: string;
+  name: string | null;
+  headline: string;
+  listed: number | null;
+  counted: number | null;
+  reviewers: number;
+  struck: number;
+  checkedAt: number;
+}
+
 interface Directory {
   latestAgentId: string | null;
   scanned: number;
   agents: AgentListing[];
+  featured: Featured | null;
+}
+
+const fmt = (v: number | null) => (v === null ? "—" : String(Math.round(v * 10) / 10));
+
+function ago(unix: number): string {
+  const s = Math.max(0, Date.now() / 1000 - unix);
+  if (s < 3600) return `${Math.max(1, Math.round(s / 60))} min ago`;
+  if (s < 86400) return `${Math.round(s / 3600)} h ago`;
+  return `${Math.round(s / 86400)} days ago`;
 }
 
 export default function Home() {
@@ -36,7 +57,7 @@ export default function Home() {
   function audit() {
     const clean = id.trim().replace(/^#/, "");
     if (!/^\d{1,12}$/.test(clean)) {
-      setFormError("Enter the agent's number from the ERC-8004 registry, like 1831.");
+      setFormError("Enter the agent's number from the ERC-8004 registry, like 1924.");
       return;
     }
     setFormError(null);
@@ -69,7 +90,7 @@ export default function Home() {
             className="lookup-input"
             inputMode="numeric"
             autoComplete="off"
-            placeholder="1831"
+            placeholder="1924"
             value={id}
             onChange={(e) => setId(e.target.value)}
           />
@@ -84,6 +105,31 @@ export default function Home() {
         )}
       </section>
 
+      {dir?.featured && (
+        <Link href={`/agent/${dir.featured.agentId}`} className="catch" aria-labelledby="catch-title">
+          <p className="catch-kicker">Caught on Monad testnet · checked {ago(dir.featured.checkedAt)}</p>
+          <h2 className="catch-title" id="catch-title">
+            {dir.featured.name ?? `Agent #${dir.featured.agentId}`}: {dir.featured.struck} of {dir.featured.reviewers}{" "}
+            reviews don&apos;t hold up
+          </h2>
+          <p className="catch-headline">{dir.featured.headline}</p>
+          <div className="catch-ratings">
+            <span className="catch-rating">
+              <span className="catch-label">Listed</span>
+              <span className="catch-value catch-listed">{fmt(dir.featured.listed)}</span>
+            </span>
+            <span className="catch-arrow" aria-hidden="true">
+              →
+            </span>
+            <span className="catch-rating">
+              <span className="catch-label">Counted</span>
+              <span className="catch-value">{fmt(dir.featured.counted)}</span>
+            </span>
+            <span className="catch-go">See the report</span>
+          </div>
+        </Link>
+      )}
+
       <section className="section" aria-labelledby="directory-title">
         <h2 className="section-title" id="directory-title">
           Agents with reviews on Monad testnet
@@ -94,7 +140,7 @@ export default function Home() {
             : "The most reviewed agents among recent registrations."}
         </p>
         <div className="directory">
-          {!dir && !dirError && <p className="directory-status">Reading the agent registry. This takes a few seconds.</p>}
+          {!dir && !dirError && <p className="directory-status">Reading the agent registry on Monad testnet…</p>}
           {dirError && <p className="directory-status">{dirError} You can still check an agent by number above.</p>}
           {dir && dir.agents.length === 0 && (
             <p className="directory-status">No recently registered agent has a review yet.</p>

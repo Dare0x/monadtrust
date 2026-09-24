@@ -101,7 +101,7 @@
     {
       "agentId": "1908",
       "reviewers": 1,
-      "name": "agentfromzero",
+      "name": null,
       "owner": "0x99e6c3fae6a1ebaed0bffffeb2b6443fac595a28"
     },
     {
@@ -143,7 +143,7 @@
     {
       "agentId": "1880",
       "reviewers": 1,
-      "name": "Starforge Player Agent",
+      "name": null,
       "owner": "0xfc4d1df0a3199a21dbe3ee9fd2d367a198744b03"
     },
     {
@@ -183,5 +183,5 @@
       "owner": "0x4e711a98a9a193317d60ba5f35d5fa7ca2315c47"
     }
   ],
-  "updatedAt": "2026-09-24T05:50:44.623Z"
+  "updatedAt": "2026-09-24T05:57:38.655Z"
 }

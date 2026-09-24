@@ -329,6 +329,81 @@ a:hover {
   font-size: 0.92rem;
   color: var(--ink-3);
 }
+.report-asof {
+  margin-top: 4px;
+  font-size: 0.85rem;
+  color: var(--ink-3);
+}
+
+/* ---------- Featured catch (home) ---------- */
+.catch {
+  display: block;
+  margin-top: 56px;
+  padding: 28px 28px 24px;
+  border: 1.5px solid var(--ink);
+  border-left: 6px solid var(--struck);
+  background: var(--sheet);
+  color: var(--ink);
+  text-decoration: none;
+}
+.catch:hover {
+  color: var(--ink);
+  border-color: var(--struck);
+}
+.catch-kicker {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--struck);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.catch-title {
+  margin-top: 8px;
+  font-size: clamp(1.4rem, 3.4vw, 2rem);
+  line-height: 1.15;
+}
+.catch-headline {
+  margin-top: 8px;
+  color: var(--ink-2);
+}
+.catch-ratings {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 20px;
+  margin-top: 18px;
+}
+.catch-rating {
+  display: flex;
+  flex-direction: column;
+}
+.catch-label {
+  font-size: 0.8rem;
+  color: var(--ink-3);
+}
+.catch-value {
+  font-size: 2.6rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--counted);
+}
+.catch-listed {
+  color: var(--ink-3);
+  text-decoration: line-through;
+  text-decoration-color: var(--struck);
+  text-decoration-thickness: 0.08em;
+}
+.catch-arrow {
+  font-size: 1.8rem;
+  color: var(--ink-3);
+  padding-bottom: 4px;
+}
+.catch-go {
+  margin-left: auto;
+  align-self: center;
+  font-weight: 600;
+  color: var(--action);
+}
 
 .finding {
   margin-top: 44px;
