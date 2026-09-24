@@ -301,10 +301,23 @@ export default function AgentPage() {
             Check the counted rating on-chain
           </h2>
           <p className="block-intro">
-            Ask the ERC-8004 reputation registry for this agent&apos;s summary using only the{" "}
-            {check.clientAddresses.length} counted {check.clientAddresses.length === 1 ? "reviewer" : "reviewers"}. It
-            should return {fmt(check.expectedAverage)}. Any contract on Monad can make the same call.
+            This asks the ERC-8004 reputation registry for the agent&apos;s summary using only the{" "}
+            {check.clientAddresses.length} counted {check.clientAddresses.length === 1 ? "reviewer" : "reviewers"}. Any
+            contract on Monad can make the same call.
           </p>
+          {check.registryAnswer ? (
+            <p className="registry-answer">
+              We made this call at block {a.asOf.block.toLocaleString()}. The registry returned{" "}
+              <strong>{fmt(check.registryAnswer.value / 10 ** check.registryAnswer.decimals)}</strong> from {check.registryAnswer.count}{" "}
+              {check.registryAnswer.count === 1 ? "review" : "reviews"}
+              {check.expectedAverage !== null &&
+              Math.abs(check.registryAnswer.value / 10 ** check.registryAnswer.decimals - check.expectedAverage) >= 0.05
+                ? `. It rounds down to its stored precision; the exact average of the same reviews is ${fmt(check.expectedAverage)}.`
+                : ", the same as the counted rating above."}
+            </p>
+          ) : (
+            <p className="registry-answer">The exact average of the counted reviews is {fmt(check.expectedAverage)}.</p>
+          )}
           <pre className="code">{check.castCommand}</pre>
           <button className="copy" onClick={() => copy(check.castCommand)}>
             {copied ? "Copied" : "Copy command"}

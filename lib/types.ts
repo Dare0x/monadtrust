@@ -185,6 +185,9 @@ export interface AgentAudit {
     expectedAverage: number | null;
     calldata: string;
     castCommand: string;
+    // What the registry itself returned for this call when the audit ran.
+    // Filled in by the service after the audit; not part of auditHash.
+    registryAnswer?: { count: number; value: number; decimals: number } | null;
   } | null;
   asOf: { block: number; timestamp: number; windowDays: number; windowStartBlock: number };
   rules: { countThreshold: number; burstWindowMinutes: number; burstMinSize: number; ageSaturationDays: number };

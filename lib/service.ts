@@ -102,6 +102,16 @@ export async function auditLive(agentIdStr: string): Promise<AgentAudit> {
       windowStartBlock: ctx.windowStart,
     },
   });
+  if (audit.onchainCheck) {
+    // Make the call we tell readers to make, and show what the registry said.
+    audit.onchainCheck.registryAnswer = await rpc
+      .ethCall(ERC8004.reputationRegistry, audit.onchainCheck.calldata)
+      .then((raw) => {
+        const [count, value, decimals] = summaryAbi.decodeFunctionResult("getSummary", raw);
+        return { count: Number(count), value: Number(value), decimals: Number(decimals) };
+      })
+      .catch(() => null);
+  }
   auditCache.set(agentIdStr, { at: Date.now(), value: audit });
   return audit;
 }
@@ -110,6 +120,9 @@ export async function auditLive(agentIdStr: string): Promise<AgentAudit> {
 
 const identityAbi = new Interface(["function tokenURI(uint256) view returns (string)", "function ownerOf(uint256) view returns (address)"]);
 const reputationAbi = new Interface(["function getClients(uint256) view returns (address[])"]);
+const summaryAbi = new Interface([
+  "function getSummary(uint256 agentId, address[] clientAddresses, string tag1, string tag2) view returns (uint64 count, int128 summaryValue, uint8 summaryValueDecimals)",
+]);
 
 export interface AgentDirectory {
   latestAgentId: string | null;

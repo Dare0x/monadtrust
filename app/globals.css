@@ -760,6 +760,18 @@ td {
   margin-top: 20px;
 }
 
+.registry-answer {
+  margin-top: 14px;
+  padding-left: 14px;
+  border-left: 2px solid var(--good);
+  font-size: 0.95rem;
+}
+.registry-answer strong {
+  font-family: var(--mono);
+  font-weight: 500;
+  color: var(--good);
+}
+
 .code {
   margin-top: 16px;
   padding: 16px 18px;
