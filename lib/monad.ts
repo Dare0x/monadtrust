@@ -25,8 +25,9 @@ import { RpcClient } from "./rpc";
 // Stay comfortably inside the ~8.99M-block pruning boundary so historical
 // reads don't fail. ~8.0M blocks ≈ 28 days of visibility, with margin.
 const WINDOW_BLOCKS = 8_000_000;
-// Safety cap on binary-search iterations (log2(8M) ≈ 23).
-const MAX_SEARCH_ITERS = 30;
+// Blocks probed per search round. Each round's probes go out in one batch, so
+// the search takes ~log5(8M) ≈ 10 round trips instead of ~23 sequential ones.
+const PROBES_PER_ROUND = 4;
 
 // Shared client: batches concurrent reads and falls back across public
 // endpoints (see lib/rpc.ts and lib/chain.ts).
@@ -49,10 +50,7 @@ function makeNonceReader(address: string) {
   return async (block: number): Promise<number> => {
     const hit = cache.get(block);
     if (hit !== undefined) return hit;
-    const hex = await rpc<string>("eth_getTransactionCount", [
-      address,
-      blockTag(block),
-    ]);
+    const hex = await client.call<string>("eth_getTransactionCount", [address, blockTag(block)], { archive: true });
     const n = hexToNumber(hex);
     cache.set(block, n);
     return n;
@@ -61,10 +59,9 @@ function makeNonceReader(address: string) {
 
 async function blockTimestamp(block: number): Promise<number | null> {
   try {
-    const b = await rpc<{ timestamp: string } | null>("eth_getBlockByNumber", [
-      blockTag(block),
-      false,
-    ]);
+    const b = await client.call<{ timestamp: string } | null>("eth_getBlockByNumber", [blockTag(block), false], {
+      archive: true,
+    });
     return b ? hexToNumber(b.timestamp) : null;
   } catch {
     return null;
@@ -76,54 +73,35 @@ async function blockTimestamp(block: number): Promise<number | null> {
  * monotonic non-decreasing. Caller guarantees nonce(hi) >= target. Used for
  * both "birth" (target=1) and "last active" (target=current nonce).
  *
- * We gallop inward from the end nearest the expected answer so the common
- * cases resolve in a handful of reads instead of a full ~23-step search:
- *   • last-active (target = current nonce): the transition sits just below
- *     `hi` for a live account, so we gallop DOWN from hi.
- *   • birth (target = 1): the transition sits near `lo`, so we gallop UP.
- * Once bracketed, we binary-search the (small) remaining interval.
+ * Each round probes a few evenly spaced blocks at once and keeps the one gap
+ * where the nonce crosses the target, shrinking the range ~5x per round trip.
  */
-async function firstBlockWithNonceAtLeast(
+export async function firstBlockWithNonceAtLeast(
   readNonce: (b: number) => Promise<number>,
   lo: number,
   hi: number,
-  target: number,
-  gallopFrom: "hi" | "lo"
+  target: number
 ): Promise<number> {
-  if (gallopFrom === "hi") {
-    // Find a lower bound `lo` with nonce(lo) < target by stepping down.
-    let step = 1;
-    let probe = hi - 1;
-    while (probe > lo) {
-      if ((await readNonce(probe)) < target) {
-        lo = probe; // nonce(lo) < target
-        break;
-      }
-      hi = probe; // nonce(hi) still >= target
-      step *= 2;
-      probe = Math.max(lo, hi - step);
+  while (lo < hi) {
+    const span = hi - lo;
+    const probes: number[] = [];
+    for (let i = 1; i <= PROBES_PER_ROUND; i++) {
+      const b = lo + Math.floor((span * i) / (PROBES_PER_ROUND + 1));
+      if (b > lo && b < hi && !probes.includes(b)) probes.push(b);
     }
-  } else {
-    // Find an upper bound `hi` with nonce(hi) >= target by stepping up.
-    let step = 1;
-    let probe = lo;
-    while (probe < hi) {
-      if ((await readNonce(probe)) >= target) {
-        hi = probe; // nonce(hi) >= target
-        break;
-      }
-      lo = probe + 1; // nonce(lo-1) < target
-      step *= 2;
-      probe = Math.min(hi, lo + step);
+    if (probes.length === 0) {
+      // lo and hi are adjacent.
+      return (await readNonce(lo)) >= target ? lo : hi;
     }
-  }
-
-  // Binary search the bracket [lo, hi] (invariant: nonce(hi) >= target).
-  let iters = 0;
-  while (lo < hi && iters++ < MAX_SEARCH_ITERS) {
-    const mid = Math.floor((lo + hi) / 2);
-    if ((await readNonce(mid)) >= target) hi = mid;
-    else lo = mid + 1;
+    const nonces = await Promise.all(probes.map(readNonce));
+    // First probe at or past the target bounds hi; the probe before it bounds lo.
+    const k = nonces.findIndex((n) => n >= target);
+    if (k === -1) {
+      lo = probes[probes.length - 1] + 1;
+    } else {
+      hi = probes[k];
+      if (k > 0) lo = probes[k - 1] + 1;
+    }
   }
   return hi;
 }
@@ -167,31 +145,22 @@ export async function fetchOnChainActivity(
     // "last active" is only a lower bound (at least this long ago).
     if (nonceAtWindowStart >= txCount) lastSeenBeforeWindow = true;
 
-    if (nonceAtWindowStart >= 1) {
-      // Already active before our visible window began: age is a lower bound.
-      firstSeenBeforeWindow = true;
-      firstSeen = await blockTimestamp(scannedFromBlock);
-    } else {
+    // Birth and last activity are independent searches, so run them together.
+    const birth = async (): Promise<number | null> => {
+      if (nonceAtWindowStart >= 1) {
+        // Already active before our visible window began: age is a lower bound.
+        firstSeenBeforeWindow = true;
+        return blockTimestamp(scannedFromBlock);
+      }
       // Born within the window: find the exact block of the first tx.
-      const birthBlock = await firstBlockWithNonceAtLeast(
-        readNonce,
-        scannedFromBlock,
-        latestBlock,
-        1,
-        "lo"
-      );
-      firstSeen = await blockTimestamp(birthBlock);
-    }
-
+      return blockTimestamp(await firstBlockWithNonceAtLeast(readNonce, scannedFromBlock, latestBlock, 1));
+    };
     // Last activity: first block that reached the current (final) nonce.
-    const lastActiveBlock = await firstBlockWithNonceAtLeast(
-      readNonce,
-      scannedFromBlock,
-      latestBlock,
-      txCount,
-      "hi"
-    );
-    lastSeen = await blockTimestamp(lastActiveBlock);
+    const last = async (): Promise<number | null> =>
+      lastSeenBeforeWindow
+        ? blockTimestamp(scannedFromBlock)
+        : blockTimestamp(await firstBlockWithNonceAtLeast(readNonce, scannedFromBlock, latestBlock, txCount));
+    [firstSeen, lastSeen] = await Promise.all([birth(), last()]);
   }
 
   return {
