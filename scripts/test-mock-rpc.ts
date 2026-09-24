@@ -8,7 +8,7 @@ import { startMockRpc, stats, sybils7 } from "./mock-chain";
 async function main() {
   const mock = await startMockRpc();
   process.env.MONAD_RPC_URLS = mock.url;
-  const { runAudit, listReviewedAgents } = await import("../lib/service");
+  const { runAudit, scanReviewedAgents } = await import("../lib/service");
   let failures = 0;
   const check = (name: string, ok: boolean, detail = "") => {
     console.log(`${ok ? "PASS" : "FAIL"}  ${name}${detail ? "  — " + detail : ""}`);
@@ -42,7 +42,7 @@ async function main() {
     }
     check("unknown agent is reported, not invented", missing);
 
-    const list = await listReviewedAgents();
+    const list = await scanReviewedAgents();
     check("discovery finds latest id 40", list.latestAgentId === "40", String(list.latestAgentId));
     check("discovery lists the three reviewed agents", list.agents.map((x) => x.agentId).join(",") === "7,12,21", list.agents.map((x) => `${x.agentId}:${x.reviewers}`).join(" "));
   } catch (e) {

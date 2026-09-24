@@ -32,7 +32,7 @@ function makeTimestampReader(rpc: RpcClient) {
     let p = cache.get(block);
     if (!p) {
       p = rpc
-        .call<{ timestamp: string } | null>("eth_getBlockByNumber", [blockTag(block), false])
+        .call<{ timestamp: string } | null>("eth_getBlockByNumber", [blockTag(block), false], { archive: true })
         .then((b) => (b ? hexToNumber(b.timestamp) : null))
         .catch(() => null);
       cache.set(block, p);
@@ -46,7 +46,7 @@ async function firstTxBlock(rpc: RpcClient, address: string, lo: number, hi: num
   let iters = 0;
   while (lo < hi && iters++ < 40) {
     const mid = Math.floor((lo + hi) / 2);
-    const n = hexToNumber(await rpc.call<string>("eth_getTransactionCount", [address, blockTag(mid)]));
+    const n = hexToNumber(await rpc.call<string>("eth_getTransactionCount", [address, blockTag(mid)], { archive: true }));
     if (n >= 1) hi = mid;
     else lo = mid + 1;
   }
@@ -79,7 +79,7 @@ async function snapshotOne(
 
   try {
     const atStart = hexToNumber(
-      await rpc.call<string>("eth_getTransactionCount", [address, blockTag(ctx.windowStart)])
+      await rpc.call<string>("eth_getTransactionCount", [address, blockTag(ctx.windowStart)], { archive: true })
     );
     if (atStart >= 1) {
       snap.firstTxBeforeWindow = true;

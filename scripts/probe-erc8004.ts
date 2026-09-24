@@ -1,12 +1,12 @@
 // Live check against real Monad testnet. Prints what the app will see.
 //   npm run check:live
-import { listReviewedAgents, runAudit } from "../lib/service";
+import { scanReviewedAgents, runAudit } from "../lib/service";
 import { rpcUrls } from "../lib/chain";
 
 async function main() {
   console.log("RPC endpoints, in order:", rpcUrls().join(", "));
   let t = Date.now();
-  const list = await listReviewedAgents();
+  const list = await scanReviewedAgents();
   console.log(`Latest agent: #${list.latestAgentId}. Scanned ${list.scanned} agents in ${Date.now() - t}ms.`);
   for (const a of list.agents.slice(0, 10)) console.log(`  #${a.agentId}  ${a.reviewers} reviewers  ${a.name ?? ""}`);
   const first = process.argv[2] ?? list.agents[0]?.agentId;

@@ -57,6 +57,9 @@ const identity = new Interface([
   "function getAgentWallet(uint256) view returns (address)",
 ]);
 const reputation = new Interface(["function getClients(uint256) view returns (address[])"]);
+const multicall = new Interface([
+  "function aggregate3((address target, bool allowFailure, bytes callData)[] calls) payable returns ((bool success, bytes returnData)[] returnData)",
+]);
 
 function handle(method: string, params: unknown[]): { result?: unknown; error?: unknown } {
   const blockOf = (tag: unknown) => (tag === "latest" ? LATEST : parseInt(String(tag), 16));
@@ -80,6 +83,14 @@ function handle(method: string, params: unknown[]): { result?: unknown; error?: 
     case "eth_call": {
       const { to, data } = params[0] as { to: string; data: string };
       const t = to.toLowerCase();
+      if (t === "0xca11bde05977b3631167028862be2a173976ca11") {
+        const [calls] = multicall.decodeFunctionData("aggregate3", data);
+        const out = (calls as { target: string; callData: string }[]).map((c) => {
+          const r = handle("eth_call", [{ to: c.target, data: c.callData }]);
+          return r.error ? { success: false, returnData: "0x" } : { success: true, returnData: r.result as string };
+        });
+        return { result: multicall.encodeFunctionResult("aggregate3", [out]) };
+      }
       if (t === "0x8004a818bfb912233c491871b3d84c89a494bd9e") {
         const tx = identity.parseTransaction({ data })!;
         const id = tx.args[0] as bigint;

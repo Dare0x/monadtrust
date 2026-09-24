@@ -2,7 +2,8 @@
 // against a free public RPC without falling over.
 //
 //  • Requests made in the same tick are coalesced into JSON-RPC batch arrays.
-//  • Only a few HTTP requests are in flight at once (public RPCs rate-limit).
+//  • Reads are paced under each endpoint's per-second limit (public RPCs count
+//    every call in a batch), and spread across the endpoints in the pool.
 //  • If an endpoint fails, the next one is tried. If an endpoint rejects
 //    batches, we fall back to single requests for it.
 //  • A revert (e.g. ownerOf on a missing token) rejects only that one call and
@@ -10,10 +11,41 @@
 
 import { rpcUrls } from "./chain";
 
-const BATCH_SIZE = 25;
-const MAX_INFLIGHT = 4;
+const BATCH_SIZE = 10;
+const MAX_INFLIGHT = 6;
 const HTTP_TIMEOUT_MS = 15_000;
-const MAX_ATTEMPTS = 4;
+const MAX_ATTEMPTS = 6;
+
+// Calls per second each endpoint accepts. The official Monad endpoint allows
+// 15 and Ankr's public one 50; we stay a little under both. Anything else
+// (your own QuickNode or Dwellir key) uses RPC_RATE.
+function rateFor(url: string): number {
+  const host = (() => {
+    try {
+      return new URL(url).hostname;
+    } catch {
+      return "";
+    }
+  })();
+  if (host === "127.0.0.1" || host === "localhost") return Infinity;
+  if (host.endsWith("monad.xyz")) return 12;
+  if (host.endsWith("ankr.com")) return 40;
+  return Number(process.env.RPC_RATE || 25);
+}
+
+// Ankr's public endpoint prunes state after about three weeks; the others we
+// use keep the full window. Historical reads go only to endpoints that keep it.
+function keepsHistory(url: string): boolean {
+  return !/ankr\.com/.test(url);
+}
+
+interface Endpoint {
+  url: string;
+  archive: boolean;
+  rate: number;
+  tokens: number;
+  refilledAt: number;
+}
 
 export class RpcRevertError extends Error {
   constructor(message: string) {
@@ -25,6 +57,8 @@ export class RpcRevertError extends Error {
 interface Pending {
   method: string;
   params: unknown[];
+  // Needs state from weeks ago, which only archive endpoints keep.
+  archive: boolean;
   attempts: number;
   resolve: (v: unknown) => void;
   reject: (e: Error) => void;
@@ -61,19 +95,37 @@ export class RpcClient {
   private inflight = 0;
   private scheduled = false;
   private nextId = 1;
-  private endpoints: string[];
-  private preferred = 0;
+  private endpoints: Endpoint[];
+  // Endpoints we pace work across. The rest are used only if these fail.
+  private poolSize: number;
   private noBatch = new Set<string>();
+  private wakeTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(endpoints: string[] = rpcUrls()) {
-    this.endpoints = endpoints;
+  constructor(urls: string[] = rpcUrls(), poolSize?: number) {
+    this.endpoints = urls.map((url) => ({ url, archive: keepsHistory(url), rate: rateFor(url), tokens: 0, refilledAt: Date.now() }));
+    for (const e of this.endpoints) e.tokens = Math.min(e.rate, BATCH_SIZE);
+    // With your own endpoint set, it does all the work and the public ones are
+    // only a fallback. With the defaults, both public endpoints share the load.
+    const custom = (process.env.MONAD_RPC_URLS?.trim() || process.env.MONAD_RPC_URL?.trim() || "").split(",").filter((s) => s.trim()).length;
+    this.poolSize = poolSize ?? Math.max(1, custom || urls.length);
   }
 
-  call<T>(method: string, params: unknown[] = []): Promise<T> {
+  private refill(e: Endpoint) {
+    const now = Date.now();
+    if (e.rate === Infinity) {
+      e.tokens = BATCH_SIZE;
+      return;
+    }
+    e.tokens = Math.min(Math.max(e.rate, BATCH_SIZE), e.tokens + ((now - e.refilledAt) / 1000) * e.rate);
+    e.refilledAt = now;
+  }
+
+  call<T>(method: string, params: unknown[] = [], opts: { archive?: boolean } = {}): Promise<T> {
     return new Promise<T>((resolve, reject) => {
       this.queue.push({
         method,
         params,
+        archive: opts.archive ?? false,
         attempts: 0,
         resolve: resolve as (v: unknown) => void,
         reject,
@@ -98,28 +150,57 @@ export class RpcClient {
 
   private pump() {
     while (this.inflight < MAX_INFLIGHT && this.queue.length > 0) {
-      const batch = this.queue.splice(0, BATCH_SIZE);
+      // First endpoint in the pool with room for at least one call it can serve.
+      let pick = -1;
+      let soonest = Infinity;
+      const needsArchiveOnly = this.queue.every((p) => p.archive);
+      for (let i = 0; i < this.poolSize; i++) {
+        const e = this.endpoints[i];
+        if (needsArchiveOnly && !e.archive) continue;
+        this.refill(e);
+        if (e.tokens >= 1) {
+          pick = i;
+          break;
+        }
+        soonest = Math.min(soonest, ((1 - e.tokens) / e.rate) * 1000);
+      }
+      if (pick < 0) {
+        if (!this.wakeTimer) {
+          this.wakeTimer = setTimeout(() => {
+            this.wakeTimer = null;
+            this.pump();
+          }, Math.max(5, Math.ceil(Number.isFinite(soonest) ? soonest : 50)));
+        }
+        return;
+      }
+      const e = this.endpoints[pick];
+      const room = Math.min(BATCH_SIZE, Math.floor(e.tokens));
+      const batch: Pending[] = [];
+      for (let i = 0; i < this.queue.length && batch.length < room; ) {
+        if (e.archive || !this.queue[i].archive) batch.push(...this.queue.splice(i, 1));
+        else i++;
+      }
+      e.tokens -= batch.length;
       this.inflight++;
-      this.send(batch).finally(() => {
+      this.send(batch, pick).finally(() => {
         this.inflight--;
         if (this.queue.length > 0) this.pump();
       });
     }
   }
 
-  private async send(batch: Pending[]): Promise<void> {
+  private async send(batch: Pending[], start: number): Promise<void> {
     let lastErr: Error | null = null;
     for (let i = 0; i < this.endpoints.length; i++) {
-      const url = this.endpoints[(this.preferred + i) % this.endpoints.length];
+      const e = this.endpoints[(start + i) % this.endpoints.length];
       try {
-        const replies = this.noBatch.has(url)
-          ? await this.postSingles(url, batch)
-          : await this.postBatch(url, batch);
-        this.preferred = (this.preferred + i) % this.endpoints.length;
-        this.settle(batch, replies);
+        const replies = this.noBatch.has(e.url) ? await this.postSingles(e.url, batch) : await this.postBatch(e.url, batch);
+        this.settle(batch, replies, e);
         return;
-      } catch (e) {
-        lastErr = e as Error;
+      } catch (err) {
+        lastErr = err as Error;
+        // Rate limited at the HTTP level: give this endpoint a second's rest.
+        if (/429/.test(lastErr.message)) e.tokens = Math.min(e.tokens, -e.rate);
       }
     }
     // Every endpoint failed at the transport level: retry the whole batch later.
@@ -133,13 +214,14 @@ export class RpcClient {
       }
     }
     if (retry.length) {
-      await sleep(400 * 2 ** retry[0].attempts);
+      await sleep(400 * 2 ** Math.min(4, retry[0].attempts));
       this.queue.unshift(...retry);
     }
   }
 
-  private settle(batch: Pending[], replies: Map<number, JsonRpcReply>) {
+  private settle(batch: Pending[], replies: Map<number, JsonRpcReply>, endpoint: Endpoint) {
     const retry: Pending[] = [];
+    let limited = false;
     batch.forEach((p, idx) => {
       const reply = replies.get(idx);
       if (!reply) {
@@ -152,6 +234,7 @@ export class RpcClient {
         if (isRevert(reply.error)) {
           p.reject(new RpcRevertError(reply.error.message));
         } else if (isRetryable(reply.error) && ++p.attempts < MAX_ATTEMPTS) {
+          limited = true;
           retry.push(p);
         } else {
           p.reject(new Error(`RPC error (${p.method}): ${reply.error.message}`));
@@ -160,11 +243,13 @@ export class RpcClient {
       }
       p.resolve(reply.result);
     });
+    // The endpoint said slow down: empty its budget so the next second is quiet.
+    if (limited) endpoint.tokens = Math.min(endpoint.tokens, -endpoint.rate / 2);
     if (retry.length) {
       setTimeout(() => {
         this.queue.unshift(...retry);
         this.schedule();
-      }, 300 * 2 ** Math.min(3, retry[0].attempts));
+      }, 500 * 2 ** Math.min(3, retry[0].attempts - 1));
     }
   }
 

@@ -2,12 +2,14 @@
 
 import { RpcClient } from "./rpc";
 import { WINDOW_BLOCKS, WINDOW_DAYS } from "./chain";
-import { fetchAgentIdentity, fetchClientCount, fetchFeedback, findLatestAgentId, resolveAgentCard } from "./erc8004";
+import { fetchAgentIdentity, fetchFeedback, findLatestAgentId, resolveAgentCard } from "./erc8004";
 import { fetchReviewerSnapshots, readChainContext } from "./reviewers";
 import { auditAgent } from "./audit";
 import type { AgentAudit, AgentListing } from "./types";
 import { Interface } from "ethers";
 import { ERC8004 } from "./chain";
+import { multicall } from "./multicall";
+import snapshotFile from "../data/agents-snapshot.json";
 
 // Reading each reviewer takes ~25 small RPC reads. Cap how many we read in one
 // request so a heavily reviewed agent still answers in time on a free RPC.
@@ -65,49 +67,90 @@ export async function runAudit(agentIdStr: string): Promise<AgentAudit> {
 // ---- Discovery -------------------------------------------------------------
 
 const identityAbi = new Interface(["function tokenURI(uint256) view returns (string)", "function ownerOf(uint256) view returns (address)"]);
+const reputationAbi = new Interface(["function getClients(uint256) view returns (address[])"]);
 
-let listCache: { at: number; value: { latestAgentId: string | null; scanned: number; agents: AgentListing[] } } | null = null;
+export interface AgentDirectory {
+  latestAgentId: string | null;
+  scanned: number;
+  agents: AgentListing[];
+  // When this list was read from the chain (ISO time).
+  updatedAt: string;
+}
+
+// A saved copy of the list (npm run snapshot), so a cold server answers at
+// once instead of making the first visitor wait for a full registry scan.
+const SNAPSHOT = snapshotFile as AgentDirectory;
+
+let listCache: { at: number; value: AgentDirectory } | null = null;
+let refreshing: Promise<AgentDirectory> | null = null;
 const LIST_TTL_MS = 10 * 60_000;
 const SCAN_SPAN = Number(process.env.SCAN_SPAN || 1500);
 
-export async function listReviewedAgents() {
+function refreshList(): Promise<AgentDirectory> {
+  refreshing ??= scanReviewedAgents()
+    .then((value) => {
+      listCache = { at: Date.now(), value };
+      return value;
+    })
+    .finally(() => {
+      refreshing = null;
+    });
+  return refreshing;
+}
+
+// Serve whatever we have straight away and refresh it in the background.
+// Only wait on the chain when there is nothing at all to show.
+export async function listReviewedAgents(): Promise<AgentDirectory> {
   if (listCache && Date.now() - listCache.at < LIST_TTL_MS) return listCache.value;
+  const stale = listCache?.value ?? (SNAPSHOT.agents.length ? SNAPSHOT : null);
+  if (stale) {
+    refreshList().catch(() => {});
+    return stale;
+  }
+  return refreshList();
+}
+
+export async function scanReviewedAgents(): Promise<AgentDirectory> {
   const rpc = new RpcClient();
   const latest = await findLatestAgentId(rpc);
-  if (latest === null) {
-    const empty = { latestAgentId: null, scanned: 0, agents: [] as AgentListing[] };
-    listCache = { at: Date.now(), value: empty };
-    return empty;
-  }
+  if (latest === null) return { latestAgentId: null, scanned: 0, agents: [], updatedAt: new Date().toISOString() };
   const from = latest - BigInt(SCAN_SPAN) + BigInt(1) > BigInt(0) ? latest - BigInt(SCAN_SPAN) + BigInt(1) : BigInt(0);
   const ids: bigint[] = [];
   for (let id = from; id <= latest; id++) ids.push(id);
 
-  const counts = await Promise.all(ids.map((id) => fetchClientCount(rpc, id).catch(() => 0)));
+  // One multicall per 200 agents. If the chain can't be read this throws, and
+  // the last good list stays up, rather than a failed read passing for "no reviews".
+  const countData = await multicall(
+    rpc,
+    ids.map((id) => ({ target: ERC8004.reputationRegistry, data: reputationAbi.encodeFunctionData("getClients", [id]) }))
+  );
   const reviewed = ids
-    .map((id, i) => ({ id, reviewers: counts[i] }))
+    .map((id, i) => {
+      const raw = countData[i];
+      const reviewers = raw ? (reputationAbi.decodeFunctionResult("getClients", raw)[0] as string[]).length : 0;
+      return { id, reviewers };
+    })
     .filter((x) => x.reviewers > 0)
     .sort((a, b) => b.reviewers - a.reviewers || Number(b.id - a.id))
     .slice(0, 30);
 
+  const idData = await multicall(
+    rpc,
+    reviewed.flatMap(({ id }) => [
+      { target: ERC8004.identityRegistry, data: identityAbi.encodeFunctionData("tokenURI", [id]) },
+      { target: ERC8004.identityRegistry, data: identityAbi.encodeFunctionData("ownerOf", [id]) },
+    ])
+  );
   const agents: AgentListing[] = await Promise.all(
-    reviewed.map(async ({ id, reviewers }) => {
-      const [uri, owner] = await Promise.all([
-        rpc
-          .ethCall(ERC8004.identityRegistry, identityAbi.encodeFunctionData("tokenURI", [id]))
-          .then((raw) => identityAbi.decodeFunctionResult("tokenURI", raw)[0] as string)
-          .catch(() => ""),
-        rpc
-          .ethCall(ERC8004.identityRegistry, identityAbi.encodeFunctionData("ownerOf", [id]))
-          .then((raw) => (identityAbi.decodeFunctionResult("ownerOf", raw)[0] as string).toLowerCase())
-          .catch(() => null),
-      ]);
+    reviewed.map(async ({ id, reviewers }, i) => {
+      const uriRaw = idData[2 * i];
+      const ownerRaw = idData[2 * i + 1];
+      const uri = uriRaw ? (identityAbi.decodeFunctionResult("tokenURI", uriRaw)[0] as string) : "";
+      const owner = ownerRaw ? (identityAbi.decodeFunctionResult("ownerOf", ownerRaw)[0] as string).toLowerCase() : null;
       const card = uri ? await resolveAgentCard(uri) : null;
       return { agentId: id.toString(), reviewers, name: card?.name ?? null, owner };
     })
   );
 
-  const value = { latestAgentId: latest.toString(), scanned: ids.length, agents };
-  listCache = { at: Date.now(), value };
-  return value;
+  return { latestAgentId: latest.toString(), scanned: ids.length, agents, updatedAt: new Date().toISOString() };
 }

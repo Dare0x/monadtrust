@@ -97,11 +97,6 @@ export async function fetchFeedback(rpc: RpcClient, agentId: bigint): Promise<Fe
   return out;
 }
 
-export async function fetchClientCount(rpc: RpcClient, agentId: bigint): Promise<number> {
-  const r = await callReputation(rpc, "getClients", [agentId]);
-  return (r[0] as string[]).length;
-}
-
 export function encodeGetSummary(agentId: string, clients: string[], tag1: string): string {
   return reputationAbi.encodeFunctionData("getSummary", [BigInt(agentId), clients, tag1, ""]);
 }
