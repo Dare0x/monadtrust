@@ -80,9 +80,9 @@ export default function Home() {
   return (
     <main>
       <section className="hero">
-        <p className="kicker">ERC-8004 review audit · Monad testnet</p>
+        <p className="kicker">ERC-8004 review checker for Monad testnet</p>
         <h1 className="hero-title">
-          Who wrote this agent&apos;s <em>reviews?</em>
+          Who wrote this agent&apos;s reviews?
         </h1>
         <p className="hero-lede">
           Any wallet can rate an AI agent under ERC-8004, and a wallet made a minute ago counts the same as a customer
@@ -125,8 +125,8 @@ export default function Home() {
       {f && (
         <Link href={`/agent/${f.agentId}`} className="catch" aria-labelledby="catch-title">
           <p className="catch-kicker">
-            Case: agent #{f.agentId}
-            {f.name ? ` (${f.name})` : ""} · checked {ago(f.checkedAt)}
+            Flagged: agent #{f.agentId}
+            {f.name ? ` (${f.name})` : ""}, checked {ago(f.checkedAt)}
           </p>
           <div className="catch-grid">
             <div>
