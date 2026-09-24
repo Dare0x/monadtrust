@@ -16,9 +16,10 @@
 // block we read, so the same block always gives the same audit.
 
 import { keccak256, toUtf8Bytes } from "ethers";
-import { ERC8004 } from "./chain";
+import { NETS, type Net } from "./chain";
 import { encodeGetSummary } from "./erc8004";
 import type {
+  FootprintGroup,
   AgentAudit,
   AgentIdentity,
   AuditVerdict,
@@ -65,6 +66,25 @@ function formatDuration(seconds: number): string {
  * Groups reviewers whose first transaction falls inside the same short window.
  * Greedy from the earliest, so the result is unique for a given input.
  */
+/** Groups of reviewers with identical non-zero balance (to the wei) and transaction count. */
+export function findFootprints(snaps: ReviewerSnapshot[]): FootprintGroup[] {
+  const groups = new Map<string, ReviewerSnapshot[]>();
+  for (const s of snaps) {
+    if (s.isContract || !s.balanceWei || s.balanceWei === "0" || s.txCount === 0) continue;
+    const k = `${s.balanceWei}|${s.txCount}`;
+    groups.set(k, [...(groups.get(k) ?? []), s]);
+  }
+  return [...groups.values()]
+    .filter((g) => g.length >= RULES.burstMinSize)
+    .map((g) => ({
+      size: g.length,
+      balance: g[0].balance,
+      txCount: g[0].txCount,
+      addresses: g.map((s) => s.address).sort(),
+    }))
+    .sort((a, b) => b.size - a.size);
+}
+
 export function findBursts(snaps: ReviewerSnapshot[]): BurstCluster[] {
   const born = snaps
     .filter((s) => s.firstTxAt !== null)
@@ -98,7 +118,8 @@ function judgeReviewer(
   agent: AgentIdentity,
   cluster: BurstCluster | undefined,
   asOf: number,
-  windowDays: number
+  windowDays: number,
+  footprint?: FootprintGroup
 ): ReviewerVerdict {
   const flags: ReviewerFlag[] = [];
   const reasons: string[] = [];
@@ -110,7 +131,9 @@ function judgeReviewer(
   if (snap.firstTxBeforeWindow) {
     ageDays = windowDays;
     ageIsLowerBound = true;
-    age = 100;
+    // We only know it's older than the window. Credit what we can see: on a
+    // 7-day window that's half marks, not full ones.
+    age = clamp((windowDays / RULES.ageSaturationDays) * 100);
   } else if (snap.firstTxAt !== null) {
     ageDays = Math.max(0, (asOf - snap.firstTxAt) / DAY);
     age = clamp((ageDays / RULES.ageSaturationDays) * 100);
@@ -128,7 +151,7 @@ function judgeReviewer(
   // Balance, weighted lightly: testnet MON is free from a faucet.
   const balance = clamp((Math.log10(snap.balance + 1) / Math.log10(11)) * 100);
 
-  const burstMultiplier = cluster ? 0.5 : 1;
+  const burstMultiplier = cluster || footprint ? 0.5 : 1;
   const base = snap.isContract
     ? age // a contract's nonce doesn't reflect use; judge it by age alone
     : RULES.weights.age * age + RULES.weights.activity * activity + RULES.weights.balance * balance;
@@ -150,6 +173,14 @@ function judgeReviewer(
         cluster.size - 1,
         "other reviewer"
       )}.`
+    );
+  }
+  if (footprint) {
+    flags.push("same_footprint");
+    reasons.push(
+      `Holds exactly the same balance (${footprint.balance.toPrecision(4)} MON) and has made the same number of transactions (${
+        footprint.txCount
+      }) as ${plural(footprint.size - 1, "other reviewer")}.`
     );
   }
   if (snap.isContract) {
@@ -245,11 +276,13 @@ export interface AuditInput {
   feedback: FeedbackEntry[];
   snapshots: ReviewerSnapshot[];
   notAnalyzed: string[];
+  net?: Net;
   asOf: { block: number; timestamp: number; windowDays: number; windowStartBlock: number };
 }
 
 export function auditAgent(input: AuditInput): AgentAudit {
   const { agent, feedback, snapshots, notAnalyzed, asOf } = input;
+  const cfg = NETS[input.net ?? "testnet"];
 
   const reviewCount = new Map<string, number>();
   for (const f of feedback) reviewCount.set(f.client, (reviewCount.get(f.client) ?? 0) + 1);
@@ -257,10 +290,21 @@ export function auditAgent(input: AuditInput): AgentAudit {
   const clusters = findBursts(snapshots);
   const clusterOf = new Map<string, BurstCluster>();
   for (const c of clusters) for (const a of c.addresses) clusterOf.set(a, c);
+  const footprints = findFootprints(snapshots);
+  const footprintOf = new Map<string, FootprintGroup>();
+  for (const g of footprints) for (const a of g.addresses) footprintOf.set(a, g);
 
   const reviewers = snapshots
     .map((s) =>
-      judgeReviewer(s, reviewCount.get(s.address) ?? 0, agent, clusterOf.get(s.address), asOf.timestamp, asOf.windowDays)
+      judgeReviewer(
+        s,
+        reviewCount.get(s.address) ?? 0,
+        agent,
+        clusterOf.get(s.address),
+        asOf.timestamp,
+        asOf.windowDays,
+        footprintOf.get(s.address)
+      )
     )
     .sort((a, b) => Number(b.counted) - Number(a.counted) || b.credibility - a.credibility || a.address.localeCompare(b.address));
 
@@ -293,6 +337,11 @@ export function auditAgent(input: AuditInput): AgentAudit {
     headline = `${biggest.size} of ${analyzed} reviewer wallets made their first transaction within ${formatDuration(
       Math.max(60, biggest.end - biggest.start)
     )} of each other.`;
+  } else if (footprints[0] && footprints[0].size >= RULES.burstMinSize) {
+    const g = footprints[0];
+    headline = `${g.size} of ${analyzed} reviewer wallets hold exactly the same balance (${g.balance.toPrecision(
+      4
+    )} MON) and have made exactly ${plural(g.txCount, "transaction")} each.`;
   } else if (linked) {
     headline = "One of the reviewers is the agent's own wallet.";
   } else if (singlePurpose >= 2 && singlePurpose / analyzed >= 0.3) {
@@ -307,7 +356,7 @@ export function auditAgent(input: AuditInput): AgentAudit {
   const onchainCheck =
     countedClients.length > 0
       ? {
-          registry: ERC8004.reputationRegistry,
+          registry: cfg.reputationRegistry,
           function: "getSummary(uint256,address[],string,string)",
           agentId: agent.agentId,
           clientAddresses: countedClients,
@@ -315,9 +364,9 @@ export function auditAgent(input: AuditInput): AgentAudit {
           tag2: "",
           expectedAverage: summaryLike(feedback, countedSet, headlineTag),
           calldata: encodeGetSummary(agent.agentId, countedClients, headlineTag),
-          castCommand: `cast call ${ERC8004.reputationRegistry} "getSummary(uint256,address[],string,string)(uint64,int128,uint8)" ${
+          castCommand: `cast call ${cfg.reputationRegistry} "getSummary(uint256,address[],string,string)(uint64,int128,uint8)" ${
             agent.agentId
-          } "[${countedClients.join(",")}]" "${headlineTag}" "" --rpc-url https://testnet-rpc.monad.xyz`,
+          } "[${countedClients.join(",")}]" "${headlineTag}" "" --rpc-url ${cfg.defaultRpcs[0]}`,
         }
       : null;
 
@@ -337,6 +386,7 @@ export function auditAgent(input: AuditInput): AgentAudit {
     reviewers,
     notAnalyzed,
     clusters,
+    footprints,
     totals: { reviews: feedback.length, reviewers: allReviewers, counted, struck },
     onchainCheck,
     asOf,
@@ -347,6 +397,6 @@ export function auditAgent(input: AuditInput): AgentAudit {
       ageSaturationDays: RULES.ageSaturationDays,
     },
     auditHash: keccak256(toUtf8Bytes(canonical)),
-    chain: "monad-testnet",
+    chain: cfg.slug,
   };
 }

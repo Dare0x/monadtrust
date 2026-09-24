@@ -1,187 +1,376 @@
 {
-  "latestAgentId": "1924",
-  "scanned": 1500,
-  "agents": [
-    {
-      "agentId": "1924",
-      "reviewers": 12,
-      "name": null,
-      "owner": "0xf22cd9788a25c5b1674595a04d6ef3fdbef1c6ba"
-    },
-    {
-      "agentId": "1923",
-      "reviewers": 12,
-      "name": null,
-      "owner": "0x349fdb14adf266b1f300d10087bc3b23fccb0264"
-    },
-    {
-      "agentId": "1778",
-      "reviewers": 4,
-      "name": "Beta Agent",
-      "owner": "0x84b21bc0974d7d640e20afbcf01626858f89c66d"
-    },
-    {
-      "agentId": "1777",
-      "reviewers": 4,
-      "name": "Alpha Agent",
-      "owner": "0x84b21bc0974d7d640e20afbcf01626858f89c66d"
-    },
-    {
-      "agentId": "1867",
-      "reviewers": 3,
-      "name": null,
-      "owner": "0xf601a214cf0fff4741e7dd405fb5a75b46388395"
-    },
-    {
-      "agentId": "1915",
-      "reviewers": 2,
-      "name": null,
-      "owner": "0xbfe4a4f6de7ec6e5153c3742541ab9c9811f9fe5"
-    },
-    {
-      "agentId": "1891",
-      "reviewers": 2,
-      "name": null,
-      "owner": "0x862599685b69a22d7108c8641679bfc2e12c879e"
-    },
-    {
-      "agentId": "1769",
-      "reviewers": 2,
-      "name": null,
-      "owner": "0x64be3212678ce0254ac02348687524f24aa6f7d0"
-    },
-    {
-      "agentId": "1728",
-      "reviewers": 2,
-      "name": null,
-      "owner": "0xe7372e60037939718ca4bbd986acb8b2253c365d"
-    },
-    {
-      "agentId": "1727",
-      "reviewers": 2,
-      "name": null,
-      "owner": "0xcda708fd10fe950027996a2bf38e0d2b9f63edcc"
-    },
-    {
-      "agentId": "1726",
-      "reviewers": 2,
-      "name": null,
-      "owner": "0x675f3bb61083e2a2ade58a5dfaeefde09630837a"
-    },
-    {
-      "agentId": "1724",
-      "reviewers": 2,
-      "name": null,
-      "owner": "0x6b1d058f9c79ab18123086c3c8d8683b2b27b096"
-    },
-    {
-      "agentId": "1723",
-      "reviewers": 2,
-      "name": null,
-      "owner": "0xf4e5bf47ed76d32565942ba7ca554d73e821b95c"
-    },
-    {
-      "agentId": "1722",
-      "reviewers": 2,
-      "name": null,
-      "owner": "0x9e3f2fa5177b2efc7542efaa1d588832d4bdf1b1"
-    },
-    {
-      "agentId": "1721",
-      "reviewers": 2,
-      "name": null,
-      "owner": "0x6c62b6a97ca5a7b1d913057a070cc5914fcc5476"
-    },
-    {
-      "agentId": "1720",
-      "reviewers": 2,
-      "name": null,
-      "owner": "0xd792e62177584ebf5237d24d26eb4842387ba93a"
-    },
-    {
-      "agentId": "1908",
-      "reviewers": 1,
-      "name": "agentfromzero",
-      "owner": "0x99e6c3fae6a1ebaed0bffffeb2b6443fac595a28"
-    },
-    {
-      "agentId": "1907",
-      "reviewers": 1,
-      "name": "Outside agent (e2e)",
-      "owner": "0x5f4e72c3b444dca1af3db1ba5edbd573dc4caef4"
-    },
-    {
-      "agentId": "1906",
-      "reviewers": 1,
-      "name": "Outside agent (e2e)",
-      "owner": "0x7795bbd5f65b4e4e772374450e8b271b3dae93e1"
-    },
-    {
-      "agentId": "1903",
-      "reviewers": 1,
-      "name": "Outside agent (e2e)",
-      "owner": "0x9de97b4332a969724d51f66678f704ed08f1ef45"
-    },
-    {
-      "agentId": "1895",
-      "reviewers": 1,
-      "name": null,
-      "owner": "0x56dabeb78e6e0889628b8a597e8eeb6b0fae5a77"
-    },
-    {
-      "agentId": "1894",
-      "reviewers": 1,
-      "name": null,
-      "owner": "0x61c780065c2f803588201f4469b2f80484da448f"
-    },
-    {
-      "agentId": "1881",
-      "reviewers": 1,
-      "name": "incident-bot",
-      "owner": "0xe56f71b0776fcf5e09100236d04395217c27ec34"
-    },
-    {
-      "agentId": "1880",
-      "reviewers": 1,
-      "name": "Starforge Player Agent",
-      "owner": "0xfc4d1df0a3199a21dbe3ee9fd2d367a198744b03"
-    },
-    {
-      "agentId": "1879",
-      "reviewers": 1,
-      "name": null,
-      "owner": "0xea682f1970bb3377498a4910bc237ce849da64fd"
-    },
-    {
-      "agentId": "1869",
-      "reviewers": 1,
-      "name": null,
-      "owner": "0x61c780065c2f803588201f4469b2f80484da448f"
-    },
-    {
-      "agentId": "1851",
-      "reviewers": 1,
-      "name": null,
-      "owner": "0x69d30ae9b520e8fa352c536fd97f3cd29da2fbda"
-    },
-    {
-      "agentId": "1831",
-      "reviewers": 1,
-      "name": null,
-      "owner": "0x61c780065c2f803588201f4469b2f80484da448f"
-    },
-    {
-      "agentId": "1830",
-      "reviewers": 1,
-      "name": "Credence Demo Borrower",
-      "owner": "0x2a442c45bbb5b2e97981b8fc8855bb5437f52754"
-    },
-    {
-      "agentId": "1808",
-      "reviewers": 1,
-      "name": null,
-      "owner": "0x4e711a98a9a193317d60ba5f35d5fa7ca2315c47"
-    }
-  ],
-  "updatedAt": "2026-09-24T07:16:26.701Z"
+  "testnet": {
+    "latestAgentId": "1924",
+    "scanned": 1500,
+    "agents": [
+      {
+        "agentId": "1924",
+        "reviewers": 12,
+        "name": null,
+        "owner": "0xf22cd9788a25c5b1674595a04d6ef3fdbef1c6ba"
+      },
+      {
+        "agentId": "1923",
+        "reviewers": 12,
+        "name": null,
+        "owner": "0x349fdb14adf266b1f300d10087bc3b23fccb0264"
+      },
+      {
+        "agentId": "1778",
+        "reviewers": 4,
+        "name": "Beta Agent",
+        "owner": "0x84b21bc0974d7d640e20afbcf01626858f89c66d"
+      },
+      {
+        "agentId": "1777",
+        "reviewers": 4,
+        "name": "Alpha Agent",
+        "owner": "0x84b21bc0974d7d640e20afbcf01626858f89c66d"
+      },
+      {
+        "agentId": "1867",
+        "reviewers": 3,
+        "name": null,
+        "owner": "0xf601a214cf0fff4741e7dd405fb5a75b46388395"
+      },
+      {
+        "agentId": "1915",
+        "reviewers": 2,
+        "name": null,
+        "owner": "0xbfe4a4f6de7ec6e5153c3742541ab9c9811f9fe5"
+      },
+      {
+        "agentId": "1891",
+        "reviewers": 2,
+        "name": null,
+        "owner": "0x862599685b69a22d7108c8641679bfc2e12c879e"
+      },
+      {
+        "agentId": "1769",
+        "reviewers": 2,
+        "name": null,
+        "owner": "0x64be3212678ce0254ac02348687524f24aa6f7d0"
+      },
+      {
+        "agentId": "1728",
+        "reviewers": 2,
+        "name": null,
+        "owner": "0xe7372e60037939718ca4bbd986acb8b2253c365d"
+      },
+      {
+        "agentId": "1727",
+        "reviewers": 2,
+        "name": null,
+        "owner": "0xcda708fd10fe950027996a2bf38e0d2b9f63edcc"
+      },
+      {
+        "agentId": "1726",
+        "reviewers": 2,
+        "name": null,
+        "owner": "0x675f3bb61083e2a2ade58a5dfaeefde09630837a"
+      },
+      {
+        "agentId": "1724",
+        "reviewers": 2,
+        "name": null,
+        "owner": "0x6b1d058f9c79ab18123086c3c8d8683b2b27b096"
+      },
+      {
+        "agentId": "1723",
+        "reviewers": 2,
+        "name": null,
+        "owner": "0xf4e5bf47ed76d32565942ba7ca554d73e821b95c"
+      },
+      {
+        "agentId": "1722",
+        "reviewers": 2,
+        "name": null,
+        "owner": "0x9e3f2fa5177b2efc7542efaa1d588832d4bdf1b1"
+      },
+      {
+        "agentId": "1721",
+        "reviewers": 2,
+        "name": null,
+        "owner": "0x6c62b6a97ca5a7b1d913057a070cc5914fcc5476"
+      },
+      {
+        "agentId": "1720",
+        "reviewers": 2,
+        "name": null,
+        "owner": "0xd792e62177584ebf5237d24d26eb4842387ba93a"
+      },
+      {
+        "agentId": "1908",
+        "reviewers": 1,
+        "name": "agentfromzero",
+        "owner": "0x99e6c3fae6a1ebaed0bffffeb2b6443fac595a28"
+      },
+      {
+        "agentId": "1907",
+        "reviewers": 1,
+        "name": "Outside agent (e2e)",
+        "owner": "0x5f4e72c3b444dca1af3db1ba5edbd573dc4caef4"
+      },
+      {
+        "agentId": "1906",
+        "reviewers": 1,
+        "name": "Outside agent (e2e)",
+        "owner": "0x7795bbd5f65b4e4e772374450e8b271b3dae93e1"
+      },
+      {
+        "agentId": "1903",
+        "reviewers": 1,
+        "name": "Outside agent (e2e)",
+        "owner": "0x9de97b4332a969724d51f66678f704ed08f1ef45"
+      },
+      {
+        "agentId": "1895",
+        "reviewers": 1,
+        "name": null,
+        "owner": "0x56dabeb78e6e0889628b8a597e8eeb6b0fae5a77"
+      },
+      {
+        "agentId": "1894",
+        "reviewers": 1,
+        "name": null,
+        "owner": "0x61c780065c2f803588201f4469b2f80484da448f"
+      },
+      {
+        "agentId": "1881",
+        "reviewers": 1,
+        "name": "incident-bot",
+        "owner": "0xe56f71b0776fcf5e09100236d04395217c27ec34"
+      },
+      {
+        "agentId": "1880",
+        "reviewers": 1,
+        "name": "Starforge Player Agent",
+        "owner": "0xfc4d1df0a3199a21dbe3ee9fd2d367a198744b03"
+      },
+      {
+        "agentId": "1879",
+        "reviewers": 1,
+        "name": null,
+        "owner": "0xea682f1970bb3377498a4910bc237ce849da64fd"
+      },
+      {
+        "agentId": "1869",
+        "reviewers": 1,
+        "name": null,
+        "owner": "0x61c780065c2f803588201f4469b2f80484da448f"
+      },
+      {
+        "agentId": "1851",
+        "reviewers": 1,
+        "name": null,
+        "owner": "0x69d30ae9b520e8fa352c536fd97f3cd29da2fbda"
+      },
+      {
+        "agentId": "1831",
+        "reviewers": 1,
+        "name": null,
+        "owner": "0x61c780065c2f803588201f4469b2f80484da448f"
+      },
+      {
+        "agentId": "1830",
+        "reviewers": 1,
+        "name": "Credence Demo Borrower",
+        "owner": "0x2a442c45bbb5b2e97981b8fc8855bb5437f52754"
+      },
+      {
+        "agentId": "1808",
+        "reviewers": 1,
+        "name": null,
+        "owner": "0x4e711a98a9a193317d60ba5f35d5fa7ca2315c47"
+      }
+    ],
+    "updatedAt": "2026-09-24T07:50:11.957Z"
+  },
+  "mainnet": {
+    "latestAgentId": "10255",
+    "scanned": 10256,
+    "agents": [
+      {
+        "agentId": "182",
+        "reviewers": 7665,
+        "name": null,
+        "owner": "0x97cd97cfe21799bacbf39d0a53469e5f82f30996"
+      },
+      {
+        "agentId": "157",
+        "reviewers": 5,
+        "name": null,
+        "owner": "0x3828b000fed74bac8636405df366fceb72710496"
+      },
+      {
+        "agentId": "153",
+        "reviewers": 5,
+        "name": null,
+        "owner": "0x6ccbe5f5cf80f66a0ef286287e2a75e4afec7fbf"
+      },
+      {
+        "agentId": "158",
+        "reviewers": 4,
+        "name": null,
+        "owner": "0xa56766dd77917efe3e6403bdddb32e7c9576cafe"
+      },
+      {
+        "agentId": "156",
+        "reviewers": 4,
+        "name": null,
+        "owner": "0x8290c36e60a57f86bab44949ce114b348c4c8c5a"
+      },
+      {
+        "agentId": "155",
+        "reviewers": 4,
+        "name": null,
+        "owner": "0x37d06c086c9dfc48205d777b0159680ade7fefe1"
+      },
+      {
+        "agentId": "154",
+        "reviewers": 4,
+        "name": null,
+        "owner": "0xcd40da7306672aa1151ba43ff479e93023e21e1f"
+      },
+      {
+        "agentId": "4",
+        "reviewers": 3,
+        "name": null,
+        "owner": "0x734b0e337bfa7d4764f4b806b4245dd312ddf134"
+      },
+      {
+        "agentId": "18",
+        "reviewers": 2,
+        "name": null,
+        "owner": "0xea0b21fb2441464f4920ce3e34d478235605816b"
+      },
+      {
+        "agentId": "10248",
+        "reviewers": 1,
+        "name": "Moolam demo generator",
+        "owner": "0x559f357ada3a96d11aea679ec0d622e4af15f67c"
+      },
+      {
+        "agentId": "10223",
+        "reviewers": 1,
+        "name": null,
+        "owner": "0xedc637d4b1bb9069753cc9335942be932083d2d0"
+      },
+      {
+        "agentId": "10221",
+        "reviewers": 1,
+        "name": null,
+        "owner": "0x9688385469cd5d216fd5a89eb03ec7fd0e0bd92d"
+      },
+      {
+        "agentId": "10219",
+        "reviewers": 1,
+        "name": null,
+        "owner": "0x8e503212c3c0806adecd2cc24f74379a3dedcbbc"
+      },
+      {
+        "agentId": "10183",
+        "reviewers": 1,
+        "name": null,
+        "owner": "0xfa1c6ff4ede5a8290b292f40bb7ad0fbcb1c65d1"
+      },
+      {
+        "agentId": "10182",
+        "reviewers": 1,
+        "name": null,
+        "owner": "0x350ef06f11e87731476d567b3e5e5d865dcd6657"
+      },
+      {
+        "agentId": "10181",
+        "reviewers": 1,
+        "name": null,
+        "owner": "0xaf95b213f44f0177e3a82e2d959524dd1e2a1174"
+      },
+      {
+        "agentId": "10180",
+        "reviewers": 1,
+        "name": null,
+        "owner": "0x76e9be89a3be6c1bf581a1f4519cb82dca9c57b3"
+      },
+      {
+        "agentId": "10169",
+        "reviewers": 1,
+        "name": null,
+        "owner": "0x5975442e9608f71cea6e9b1f3841b5a045e0500d"
+      },
+      {
+        "agentId": "10168",
+        "reviewers": 1,
+        "name": null,
+        "owner": "0x64dbe996e626260f21f5c4fad3c9ba209978c368"
+      },
+      {
+        "agentId": "10153",
+        "reviewers": 1,
+        "name": null,
+        "owner": "0xfa349fa115142cb1029648ae1fe61436ef9e3164"
+      },
+      {
+        "agentId": "8394",
+        "reviewers": 1,
+        "name": null,
+        "owner": "0x0056e6dc86930d910e3da03e22e72ee7b327b150"
+      },
+      {
+        "agentId": "8393",
+        "reviewers": 1,
+        "name": null,
+        "owner": "0xec169f22e194fcc65cd5b3de8b385736485e7647"
+      },
+      {
+        "agentId": "8366",
+        "reviewers": 1,
+        "name": "BargainBot Agent",
+        "owner": "0x52ce108ae72712929fd2b8c6177a9b39e0ccf644"
+      },
+      {
+        "agentId": "8365",
+        "reviewers": 1,
+        "name": "TrustCart Prime Agent",
+        "owner": "0x52ce108ae72712929fd2b8c6177a9b39e0ccf644"
+      },
+      {
+        "agentId": "8358",
+        "reviewers": 1,
+        "name": "Alanchruzh Bot",
+        "owner": "0x44c0551deb02f75189c7c4075b58212cfb108f2d"
+      },
+      {
+        "agentId": "8357",
+        "reviewers": 1,
+        "name": "Valiron Zero Agent #2 (Test)",
+        "owner": "0x52ce108ae72712929fd2b8c6177a9b39e0ccf644"
+      },
+      {
+        "agentId": "8355",
+        "reviewers": 1,
+        "name": "Valiron Bad Agent #3 (Test)",
+        "owner": "0x52ce108ae72712929fd2b8c6177a9b39e0ccf644"
+      },
+      {
+        "agentId": "8354",
+        "reviewers": 1,
+        "name": "Valiron Bad Agent #2 (Test)",
+        "owner": "0x52ce108ae72712929fd2b8c6177a9b39e0ccf644"
+      },
+      {
+        "agentId": "8353",
+        "reviewers": 1,
+        "name": "Valiron Bad Agent #1 (Test)",
+        "owner": "0x52ce108ae72712929fd2b8c6177a9b39e0ccf644"
+      },
+      {
+        "agentId": "8352",
+        "reviewers": 1,
+        "name": "Valiron Good Agent #5 (Demo)",
+        "owner": "0x52ce108ae72712929fd2b8c6177a9b39e0ccf644"
+      }
+    ],
+    "updatedAt": "2026-09-24T07:48:44.160Z"
+  }
 }

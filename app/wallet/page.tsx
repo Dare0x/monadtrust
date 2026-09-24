@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { Suspense, useCallback, useRef, useState } from "react";
 import type { TrustScoreResult } from "@/lib/types";
+import { useNet } from "@/components/useNet";
 
-const EXPLORER = "https://testnet.monadscan.com/address/";
 
 const BAND_TEXT: Record<TrustScoreResult["band"], string> = {
   high: "Established",
@@ -12,7 +12,17 @@ const BAND_TEXT: Record<TrustScoreResult["band"], string> = {
   new: "No transactions yet",
 };
 
-export default function WalletPage() {
+export default function WalletPageWrapper() {
+  return (
+    <Suspense>
+      <WalletPage />
+    </Suspense>
+  );
+}
+
+function WalletPage() {
+  const { cfg, withNet } = useNet();
+  const EXPLORER = cfg.explorerAddress;
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<TrustScoreResult | null>(null);
@@ -32,7 +42,7 @@ export default function WalletPage() {
     setResult(null);
     setExplanation(null);
     try {
-      const res = await fetch(`/api/score/${addr}`);
+      const res = await fetch(withNet(`/api/score/${addr}`));
       const data = await res.json();
       if (mine !== seq.current) return;
       if (!res.ok) {
@@ -54,17 +64,18 @@ export default function WalletPage() {
     } finally {
       if (mine === seq.current) setLoading(false);
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cfg.net]);
 
   return (
     <main>
       <section className="hero">
-        <p className="kicker">Single wallet check, Monad testnet</p>
+        <p className="kicker">Single wallet check, {cfg.name}</p>
         <h1 className="hero-title">
           How much has this wallet actually done?
         </h1>
         <p className="hero-lede">
-          The same measure MonadTrust applies to every reviewer: how long a wallet has existed on Monad testnet, how
+          The same measure MonadTrust applies to every reviewer: how long a wallet has existed on {cfg.name}, how
           much it has done, and how recently.
         </p>
         <form
@@ -93,7 +104,7 @@ export default function WalletPage() {
       {loading && (
         <div className="progress" role="status">
           <div className="progress-line" />
-          <p className="progress-text">Reading this wallet&apos;s history on Monad testnet.</p>
+          <p className="progress-text">Reading this wallet&apos;s history on {cfg.name}.</p>
         </div>
       )}
 

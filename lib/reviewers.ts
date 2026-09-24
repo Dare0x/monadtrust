@@ -69,6 +69,7 @@ async function snapshotOne(
     address,
     isContract: code !== "0x" && code !== "0x0",
     balance: Number(BigInt(balHex)) / 1e18,
+    balanceWei: BigInt(balHex).toString(),
     txCount: hexToNumber(nonceHex),
     firstTxAt: null,
     firstTxBlock: null,

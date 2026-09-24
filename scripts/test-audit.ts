@@ -128,5 +128,33 @@ function fb(n: number, value: number, tag1 = "starred", index = 1): FeedbackEntr
   check("bursts: three wallets within 200s form one burst", findBursts(snaps).length === 1);
 }
 
+// --- Identical footprints: same balance to the wei and same tx count -------
+{
+  const farm = (n: number) => ({ ...established(n, 3, 0.002142), balanceWei: "2142000000000000" });
+  const real = (n: number, tx: number, wei: string) => ({ ...established(n, tx, Number(wei) / 1e18), balanceWei: wei });
+  const snaps = [farm(0x300), farm(0x301), farm(0x302), farm(0x303), real(0x310, 90, "1500000000000000000"), real(0x311, 60, "2500000000000000000")];
+  const feedback = snaps.map((s, i) => fb(parseInt(s.address, 16), i < 4 ? 100 : 60));
+  const a = auditAgent({ agent, feedback, snapshots: snaps, notAnalyzed: [], asOf });
+  check("footprint: group of 4 found", a.footprints?.[0]?.size === 4, JSON.stringify(a.footprints?.map((g) => g.size)));
+  check("footprint: farm wallets flagged", a.reviewers.filter((r) => r.flags.includes("same_footprint")).length === 4);
+  check("footprint: real wallets untouched", a.reviewers.filter((r) => !r.flags.includes("same_footprint")).every((r) => r.counted));
+  check("footprint: headline names it", /same balance/.test(a.headline), a.headline);
+  const two = auditAgent({ agent, feedback: feedback.slice(0, 2), snapshots: snaps.slice(0, 2), notAnalyzed: [], asOf });
+  check("footprint: two matching wallets is not a group", (two.footprints ?? []).length === 0);
+}
+
+// --- Short history window (mainnet keeps ~7 days) -------------------------
+{
+  const shortAsOf = { ...asOf, windowDays: 7 };
+  const snaps = [established(0x400, 3, 0), established(0x401, 3, 0), established(0x402, 250, 4)];
+  snaps[1] = { ...snaps[1], balance: 0.0001 };
+  const feedback = snaps.map((s) => fb(parseInt(s.address, 16), 80));
+  const a = auditAgent({ agent, feedback, snapshots: snaps, notAnalyzed: [], asOf: shortAsOf });
+  const low = a.reviewers.find((r) => r.address === addr(0x400))!;
+  check("short window: 'older than 7 days' earns half the age marks", low.parts.age === 50, String(low.parts.age));
+  check("short window: near-idle old wallet is not counted", !low.counted, String(low.credibility));
+  check("short window: active old wallet still counts", a.reviewers.find((r) => r.address === addr(0x402))!.counted);
+}
+
 console.log(failures === 0 ? "\nAll audit tests passed." : `\n${failures} test(s) failed.`);
 process.exit(failures === 0 ? 0 : 1);

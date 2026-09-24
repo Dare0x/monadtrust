@@ -65,7 +65,7 @@ function compile() {
 }
 
 async function main() {
-  const rpc = new RpcClient();
+  const rpc = new RpcClient(undefined, undefined, "testnet");
   const coder = AbiCoder.defaultAbiCoder();
   const bytecode = compile();
   let failures = 0;
@@ -77,10 +77,10 @@ async function main() {
   // Agent #1778 (Beta Agent): four reviewers, all counted by the audit.
   const agentId = 1778n;
   const audits = JSON.parse(fs.readFileSync(path.join(ROOT, "data", "audits-snapshot.json"), "utf8"));
-  const clients: string[] = [...audits["1778"].onchainCheck.clientAddresses].sort((a: string, b: string) =>
+  const clients: string[] = [...audits.testnet["1778"].onchainCheck.clientAddresses].sort((a: string, b: string) =>
     BigInt(a) < BigInt(b) ? -1 : 1
   );
-  const tag = audits["1778"].onchainCheck.tag1;
+  const tag = audits.testnet["1778"].onchainCheck.tag1;
 
   // What the registry itself says for the same list.
   const reg = new Interface([

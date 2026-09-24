@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchOnChainActivity } from "@/lib/monad";
 import { computeTrustScore } from "@/lib/engine";
+import { parseNet } from "@/lib/chain";
 
 // Always run fresh — chain state changes constantly, never cache a score.
 export const dynamic = "force-dynamic";
@@ -16,7 +17,7 @@ export const runtime = "nodejs";
 const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ address: string }> }
 ) {
   const { address } = await params;
@@ -32,7 +33,7 @@ export async function GET(
   }
 
   try {
-    const activity = await fetchOnChainActivity(address);
+    const activity = await fetchOnChainActivity(address, parseNet(req.nextUrl.searchParams.get("net")));
     const result = computeTrustScore(activity);
     return NextResponse.json(result, {
       status: 200,

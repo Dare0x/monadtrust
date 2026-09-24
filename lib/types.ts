@@ -111,6 +111,8 @@ export interface ReviewerSnapshot {
   address: string;
   isContract: boolean;
   balance: number;
+  // Exact balance in wei, for spotting wallets funded with identical amounts.
+  balanceWei?: string;
   txCount: number;
   firstTxAt: number | null; // unix seconds, only when born inside the window
   firstTxBlock: number | null;
@@ -121,6 +123,7 @@ export interface ReviewerSnapshot {
 export type ReviewerFlag =
   | "linked_to_agent" // reviewer is the agent's own wallet
   | "burst" // first transaction within minutes of several other reviewers
+  | "same_footprint" // exactly the same balance and transaction count as several other reviewers
   | "single_purpose" // has done almost nothing except review this agent
   | "brand_new" // first transaction less than a day ago
   | "contract" // reviews posted by a smart contract
@@ -158,6 +161,16 @@ export interface BurstCluster {
   addresses: string[];
 }
 
+// Reviewers holding exactly the same balance, to the wei, with the same
+// transaction count. Independent customers essentially never match like this;
+// wallets funded and run by one script do.
+export interface FootprintGroup {
+  size: number;
+  balance: number;
+  txCount: number;
+  addresses: string[];
+}
+
 export type AuditVerdict = "organic" | "mixed" | "inflated" | "thin" | "none";
 
 export interface AgentAudit {
@@ -169,6 +182,7 @@ export interface AgentAudit {
   reviewers: ReviewerVerdict[];
   notAnalyzed: string[]; // reviewers we could not read or skipped (cap)
   clusters: BurstCluster[];
+  footprints?: FootprintGroup[];
   totals: {
     reviews: number;
     reviewers: number;
@@ -192,7 +206,7 @@ export interface AgentAudit {
   asOf: { block: number; timestamp: number; windowDays: number; windowStartBlock: number };
   rules: { countThreshold: number; burstWindowMinutes: number; burstMinSize: number; ageSaturationDays: number };
   auditHash: string;
-  chain: "monad-testnet";
+  chain: "monad-testnet" | "monad-mainnet";
 }
 
 export interface AgentListing {

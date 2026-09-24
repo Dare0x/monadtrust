@@ -9,7 +9,7 @@
 //  • A revert (e.g. ownerOf on a missing token) rejects only that one call and
 //    is never retried; rate-limit and network errors are retried with backoff.
 
-import { rpcUrls } from "./chain";
+import { DEFAULT_NET, NETS, type Net, rpcUrls } from "./chain";
 
 const BATCH_SIZE = 10;
 const MAX_INFLIGHT = 6;
@@ -29,6 +29,7 @@ function rateFor(url: string): number {
   })();
   if (host === "127.0.0.1" || host === "localhost") return Infinity;
   if (host.endsWith("monad.xyz")) return 12;
+  if (host.endsWith("monadinfra.com")) return 12;
   if (host.endsWith("ankr.com")) return 40;
   return Number(process.env.RPC_RATE || 25);
 }
@@ -101,12 +102,16 @@ export class RpcClient {
   private noBatch = new Set<string>();
   private wakeTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(urls: string[] = rpcUrls(), poolSize?: number) {
+  readonly net: Net;
+
+  constructor(urls?: string[], poolSize?: number, net: Net = DEFAULT_NET) {
+    this.net = net;
+    urls = urls ?? rpcUrls(net);
     this.endpoints = urls.map((url) => ({ url, archive: keepsHistory(url), rate: rateFor(url), tokens: 0, refilledAt: Date.now() }));
     for (const e of this.endpoints) e.tokens = Math.min(e.rate, BATCH_SIZE);
     // With your own endpoint set, it does all the work and the public ones are
     // only a fallback. With the defaults, both public endpoints share the load.
-    const custom = (process.env.MONAD_RPC_URLS?.trim() || process.env.MONAD_RPC_URL?.trim() || "").split(",").filter((s) => s.trim()).length;
+    const custom = (process.env[NETS[net].rpcEnv]?.trim() || "").split(",").filter((s) => s.trim()).length;
     this.poolSize = poolSize ?? Math.max(1, custom || urls.length);
   }
 
@@ -306,3 +311,6 @@ export class RpcClient {
 
 export const hexToNumber = (hex: string): number => parseInt(hex, 16);
 export const blockTag = (block: number): string => "0x" + block.toString(16);
+
+/** A client for one network, using its configured endpoints. */
+export const rpcFor = (net: Net) => new RpcClient(undefined, undefined, net);

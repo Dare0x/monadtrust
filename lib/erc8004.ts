@@ -6,7 +6,7 @@
 //   ReputationRegistry.readAllFeedback / getClients
 
 import { Interface } from "ethers";
-import { ERC8004 } from "./chain";
+import { NETS } from "./chain";
 import { RpcClient, RpcRevertError } from "./rpc";
 import type { AgentCard, AgentIdentity, FeedbackEntry } from "./types";
 
@@ -26,13 +26,13 @@ const ZERO = "0x0000000000000000000000000000000000000000";
 
 async function callIdentity(rpc: RpcClient, fn: string, args: unknown[]) {
   const data = identityAbi.encodeFunctionData(fn, args);
-  const raw = await rpc.ethCall(ERC8004.identityRegistry, data);
+  const raw = await rpc.ethCall(NETS[rpc.net].identityRegistry, data);
   return identityAbi.decodeFunctionResult(fn, raw);
 }
 
 async function callReputation(rpc: RpcClient, fn: string, args: unknown[]) {
   const data = reputationAbi.encodeFunctionData(fn, args);
-  const raw = await rpc.ethCall(ERC8004.reputationRegistry, data);
+  const raw = await rpc.ethCall(NETS[rpc.net].reputationRegistry, data);
   return reputationAbi.decodeFunctionResult(fn, raw);
 }
 
@@ -73,26 +73,40 @@ export async function fetchAgentIdentity(rpc: RpcClient, agentId: bigint): Promi
   };
 }
 
+// readAllFeedback over every reviewer runs out of gas on busy agents (mainnet
+// agent #182 has 7,665 reviewers), so past this many we read in pages of
+// reviewers instead.
+const FEEDBACK_PAGE = 150;
+
 export async function fetchFeedback(rpc: RpcClient, agentId: bigint): Promise<FeedbackEntry[]> {
-  const r = await callReputation(rpc, "readAllFeedback", [agentId, [], "", "", false]);
-  const clients = r[0] as string[];
-  const indexes = r[1] as bigint[];
-  const values = r[2] as bigint[];
-  const decimals = r[3] as bigint[];
-  const tag1s = r[4] as string[];
-  const tag2s = r[5] as string[];
+  const clients = ((await callReputation(rpc, "getClients", [agentId]))[0] as string[]).map((c) => c.toLowerCase());
+  if (clients.length === 0) return [];
+  const pages: string[][] = [];
+  if (clients.length <= FEEDBACK_PAGE) pages.push([]);
+  else for (let i = 0; i < clients.length; i += FEEDBACK_PAGE) pages.push(clients.slice(i, i + FEEDBACK_PAGE));
+  const results = await Promise.all(
+    pages.map((page) => callReputation(rpc, "readAllFeedback", [agentId, page, "", "", false]))
+  );
   const out: FeedbackEntry[] = [];
-  for (let i = 0; i < clients.length; i++) {
-    const dec = Number(decimals[i]);
-    out.push({
-      client: clients[i].toLowerCase(),
-      index: Number(indexes[i]),
-      rawValue: values[i].toString(),
-      decimals: dec,
-      value: Number(values[i]) / 10 ** dec,
-      tag1: tag1s[i] ?? "",
-      tag2: tag2s[i] ?? "",
-    });
+  for (const r of results) {
+    const cs = r[0] as string[];
+    const indexes = r[1] as bigint[];
+    const values = r[2] as bigint[];
+    const decimals = r[3] as bigint[];
+    const tag1s = r[4] as string[];
+    const tag2s = r[5] as string[];
+    for (let i = 0; i < cs.length; i++) {
+      const dec = Number(decimals[i]);
+      out.push({
+        client: cs[i].toLowerCase(),
+        index: Number(indexes[i]),
+        rawValue: values[i].toString(),
+        decimals: dec,
+        value: Number(values[i]) / 10 ** dec,
+        tag1: tag1s[i] ?? "",
+        tag2: tag2s[i] ?? "",
+      });
+    }
   }
   return out;
 }

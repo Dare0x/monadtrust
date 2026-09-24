@@ -1,18 +1,20 @@
 // Live check against real Monad testnet. Prints what the app will see.
 //   npm run check:live
 import { scanReviewedAgents, runAudit } from "../lib/service";
+import { parseNet } from "../lib/chain";
+const NET = parseNet(process.argv[2]);
 import { rpcUrls } from "../lib/chain";
 
 async function main() {
   console.log("RPC endpoints, in order:", rpcUrls().join(", "));
   let t = Date.now();
-  const list = await scanReviewedAgents();
+  const list = await scanReviewedAgents(NET);
   console.log(`Latest agent: #${list.latestAgentId}. Scanned ${list.scanned} agents in ${Date.now() - t}ms.`);
   for (const a of list.agents.slice(0, 10)) console.log(`  #${a.agentId}  ${a.reviewers} reviewers  ${a.name ?? ""}`);
   const first = process.argv[2] ?? list.agents[0]?.agentId;
   if (!first) return console.log("No reviewed agents found.");
   t = Date.now();
-  const audit = await runAudit(first);
+  const audit = await runAudit(first, NET);
   console.log(`\nAudit of #${first} took ${Date.now() - t}ms`);
   console.log(`  ${audit.headline}`);
   console.log(`  verdict: ${audit.verdict}; counted ${audit.totals.counted} of ${audit.reviewers.length} read; not read: ${audit.notAnalyzed.length}`);

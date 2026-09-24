@@ -5,6 +5,7 @@
 // audit (lib/audit.ts) plus a plain-English summary of it.
 
 import { NextRequest, NextResponse } from "next/server";
+import { NETS, parseNet } from "@/lib/chain";
 import { AgentNotFoundError, runAudit } from "@/lib/service";
 import { explainAudit } from "@/lib/explainAudit";
 
@@ -12,13 +13,14 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const net = parseNet(req.nextUrl.searchParams.get("net"));
   if (!/^\d{1,12}$/.test(id)) {
     return NextResponse.json({ error: "Agent IDs are whole numbers, like 1924." }, { status: 400 });
   }
   try {
-    const audit = await runAudit(String(BigInt(id)));
+    const audit = await runAudit(String(BigInt(id)), net);
     const summary = await explainAudit(audit);
     return NextResponse.json(
       { audit, summary },
@@ -26,7 +28,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     );
   } catch (err) {
     if (err instanceof AgentNotFoundError) {
-      return NextResponse.json({ error: `No agent #${id} is registered on Monad testnet.` }, { status: 404 });
+      return NextResponse.json({ error: `No agent #${id} is registered on ${NETS[net].name}.` }, { status: 404 });
     }
     return NextResponse.json(
       {

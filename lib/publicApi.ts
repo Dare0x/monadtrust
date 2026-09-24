@@ -2,8 +2,9 @@
 // audit object can change; these fields shouldn't.
 
 import { Interface } from "ethers";
-import { RpcClient } from "./rpc";
-import { REVIEWER_LISTS } from "./deployments";
+import { rpcFor } from "./rpc";
+import { NETS, type Net } from "./chain";
+import { REVIEWER_LISTS_ABI, reviewerLists } from "./deployments";
 import type { AgentAudit } from "./types";
 
 export const CORS = {
@@ -12,7 +13,7 @@ export const CORS = {
   "access-control-allow-headers": "content-type",
 };
 
-const listsAbi = new Interface(REVIEWER_LISTS.abi);
+const listsAbi = new Interface(REVIEWER_LISTS_ABI);
 
 export function countedReviewers(a: AgentAudit): string[] {
   return a.reviewers
@@ -22,12 +23,13 @@ export function countedReviewers(a: AgentAudit): string[] {
 }
 
 // What MonadTrust has published on-chain for this agent, if anything.
-async function onchainList(agentId: string) {
-  if (!REVIEWER_LISTS.address || !REVIEWER_LISTS.publisher) return null;
+async function onchainList(net: Net, agentId: string) {
+  const d = reviewerLists(net);
+  if (!d.address || !d.publisher) return null;
   try {
-    const raw = await new RpcClient().ethCall(
-      REVIEWER_LISTS.address,
-      listsAbi.encodeFunctionData("getList", [REVIEWER_LISTS.publisher, BigInt(agentId)])
+    const raw = await rpcFor(net).ethCall(
+      d.address,
+      listsAbi.encodeFunctionData("getList", [d.publisher, BigInt(agentId)])
     );
     const [clients, auditHash, sourceBlock, publishedAt] = listsAbi.decodeFunctionResult("getList", raw);
     if (Number(publishedAt) === 0) return { published: false as const };
@@ -43,17 +45,24 @@ async function onchainList(agentId: string) {
   }
 }
 
-export async function agentV1(a: AgentAudit, origin: string) {
+export async function agentV1(a: AgentAudit, net: Net, origin: string) {
+  const d = reviewerLists(net);
   return {
     agentId: a.agent.agentId,
-    chainId: 10143,
+    network: net,
+    chainId: NETS[net].chainId,
     name: a.agent.card?.name ?? null,
     owner: a.agent.owner,
     verdict: a.verdict,
     headline: a.headline,
     checkedAt: { block: a.asOf.block, timestamp: a.asOf.timestamp },
     auditHash: a.auditHash,
-    reviewers: { total: a.totals.reviewers, counted: a.totals.counted, struck: a.totals.struck },
+    reviewers: {
+      total: a.totals.reviewers,
+      read: a.reviewers.length,
+      counted: a.totals.counted,
+      struck: a.totals.struck,
+    },
     countedReviewers: countedReviewers(a),
     ratings: a.tags.map((t) => ({
       tag: t.tag,
@@ -61,10 +70,10 @@ export async function agentV1(a: AgentAudit, origin: string) {
       counted: { average: t.counted.average, reviews: t.counted.reviews },
     })),
     onchain: {
-      reviewerLists: REVIEWER_LISTS.address,
-      publisher: REVIEWER_LISTS.publisher,
-      list: await onchainList(a.agent.agentId),
+      reviewerLists: d.address,
+      publisher: d.publisher,
+      list: await onchainList(net, a.agent.agentId),
     },
-    report: `${origin}/agent/${a.agent.agentId}`,
+    report: `${origin}/agent/${a.agent.agentId}${net === "testnet" ? "?net=testnet" : ""}`,
   };
 }

@@ -5,19 +5,21 @@
 // the clearest current case of stuffed reviews. Served from the saved list and
 // refreshed from the chain in the background.
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { parseNet } from "@/lib/chain";
 import { featuredCatch, knownAudits, listReviewedAgents } from "@/lib/service";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const net = parseNet(req.nextUrl.searchParams.get("net"));
   try {
-    const list = await listReviewedAgents();
-    const audits = knownAudits();
+    const list = await listReviewedAgents(net);
+    const audits = knownAudits(net);
 
-    const f = featuredCatch();
+    const f = featuredCatch(net);
     const tag = f?.tags.find((t) => t.tag === f.headlineTag) ?? f?.tags[0];
     const featured =
       f && tag
@@ -28,6 +30,7 @@ export async function GET() {
             listed: tag.listed.average,
             counted: tag.counted.average,
             reviewers: f.totals.reviewers,
+            read: f.reviewers.length,
             struck: f.totals.struck,
             checkedAt: f.asOf.timestamp,
             marks: f.reviewers.map((r) => r.counted),
@@ -37,7 +40,7 @@ export async function GET() {
     let reviewersChecked = 0;
     let struck = 0;
     for (const a of audits.values()) {
-      reviewersChecked += a.totals.reviewers;
+      reviewersChecked += a.reviewers.length;
       struck += a.totals.struck;
     }
 

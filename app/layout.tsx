@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
+import SiteNav from "@/components/SiteNav";
 import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
 
@@ -21,21 +23,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link href="/" className="wordmark">
               MonadTrust
             </Link>
-            <nav className="site-nav" aria-label="Main">
-              <Link href="/">Agents</Link>
-              <Link href="/wallet">Check a wallet</Link>
-              <Link href="/docs">Docs</Link>
-              <a href="https://github.com/Dare0x/monadtrust" target="_blank" rel="noreferrer">
-                Source
-              </a>
-            </nav>
+            <Suspense fallback={<nav className="site-nav" aria-label="Main" />}>
+              <SiteNav />
+            </Suspense>
           </div>
         </header>
         <div className="frame">
           {children}
           <footer className="site-foot">
             <p>
-              Reads the ERC-8004 registries on Monad testnet (chain 10143) through its public RPC. Every number here
+              Reads the ERC-8004 registries on Monad mainnet (chain 143) and testnet (chain 10143) through public RPCs. Every number here
               comes from code you can read and re-run; no AI model produces or changes one.
             </p>
             <p>A counted review is not proof of honesty, and a struck one is not an accusation.</p>

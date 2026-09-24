@@ -108,6 +108,21 @@ a:hover {
 .site-nav a:hover {
   color: var(--text);
 }
+.net-switch {
+  display: inline-flex;
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius);
+  overflow: hidden;
+  font-size: 0.8rem;
+}
+.net-switch a {
+  padding: 3px 10px;
+  color: var(--text-3);
+}
+.net-switch a[aria-current="true"] {
+  background: var(--surface-3);
+  color: var(--text);
+}
 
 .frame {
   max-width: var(--page);
@@ -623,6 +638,29 @@ a:hover {
 .block {
   margin-top: 72px;
 }
+.sample-note {
+  margin-top: 16px;
+  padding-left: 14px;
+  border-left: 2px solid var(--warn);
+  max-width: 72ch;
+  font-size: 0.9rem;
+  color: var(--text-2);
+}
+.footprints {
+  margin-top: 16px;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+.footprints li {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+  box-shadow: inset 3px 0 0 var(--bad);
+  padding-left: 14px;
+}
+.footprints strong {
+  font-weight: 600;
+  color: var(--bad);
+}
 .block-title {
   font-weight: 600;
   font-size: 1.35rem;
@@ -1042,9 +1080,13 @@ code {
   .site-head-inner {
     padding: 16px;
   }
+  .site-head-inner {
+    flex-wrap: wrap;
+  }
   .site-nav {
-    gap: 16px;
+    gap: 14px;
     font-size: 0.85rem;
+    flex-wrap: wrap;
   }
   .frame {
     padding: 0 16px 64px;

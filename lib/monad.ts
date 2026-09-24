@@ -20,21 +20,21 @@
 
 import { OnChainActivity } from "./types";
 
-import { RpcClient } from "./rpc";
+import { rpcFor } from "./rpc";
+import { DEFAULT_NET, NETS, type Net, windowDays } from "./chain";
+import type { RpcClient } from "./rpc";
 
-// Stay comfortably inside the ~8.99M-block pruning boundary so historical
-// reads don't fail. ~8.0M blocks ≈ 28 days of visibility, with margin.
-const WINDOW_BLOCKS = 8_000_000;
 // Blocks probed per search round. Each round's probes go out in one batch, so
 // the search takes ~log5(8M) ≈ 10 round trips instead of ~23 sequential ones.
 const PROBES_PER_ROUND = 4;
 
-// Shared client: batches concurrent reads and falls back across public
-// endpoints (see lib/rpc.ts and lib/chain.ts).
-const client = new RpcClient();
-
-function rpc<T>(method: string, params: unknown[]): Promise<T> {
-  return client.call<T>(method, params);
+// One shared client per network: batches concurrent reads and falls back
+// across public endpoints (see lib/rpc.ts and lib/chain.ts).
+const clients = new Map<Net, RpcClient>();
+function clientFor(net: Net): RpcClient {
+  let c = clients.get(net);
+  if (!c) clients.set(net, (c = rpcFor(net)));
+  return c;
 }
 
 function hexToNumber(hex: string): number {
@@ -45,7 +45,7 @@ const blockTag = (block: number) => "0x" + block.toString(16);
 
 // Nonce (transactions sent) for an address at a specific block height.
 // Read-through cached so the two binary searches never re-fetch a height.
-function makeNonceReader(address: string) {
+function makeNonceReader(client: RpcClient, address: string) {
   const cache = new Map<number, number>();
   return async (block: number): Promise<number> => {
     const hit = cache.get(block);
@@ -57,7 +57,7 @@ function makeNonceReader(address: string) {
   };
 }
 
-async function blockTimestamp(block: number): Promise<number | null> {
+async function blockTimestamp(client: RpcClient, block: number): Promise<number | null> {
   try {
     const b = await client.call<{ timestamp: string } | null>("eth_getBlockByNumber", [blockTag(block), false], {
       archive: true,
@@ -111,10 +111,11 @@ export async function firstBlockWithNonceAtLeast(
  * on Monad testnet. Uses direct reads (balance/nonce/code) plus a bounded
  * binary search over the historical nonce for age and recency.
  */
-export async function fetchOnChainActivity(
-  address: string
-): Promise<OnChainActivity> {
+export async function fetchOnChainActivity(address: string, net: Net = DEFAULT_NET): Promise<OnChainActivity> {
   const addr = address.toLowerCase();
+  const client = clientFor(net);
+  const rpc = <T>(method: string, params: unknown[]) => client.call<T>(method, params);
+  const WINDOW_BLOCKS = NETS[net].windowBlocks;
 
   const [balanceHex, nonceHex, code, latestHex] = await Promise.all([
     rpc<string>("eth_getBalance", [addr, "latest"]),
@@ -129,7 +130,7 @@ export async function fetchOnChainActivity(
   const latestBlock = hexToNumber(latestHex);
   const scannedFromBlock = Math.max(0, latestBlock - WINDOW_BLOCKS);
 
-  const readNonce = makeNonceReader(addr);
+  const readNonce = makeNonceReader(client, addr);
 
   let firstSeen: number | null = null;
   let lastSeen: number | null = null;
@@ -150,16 +151,16 @@ export async function fetchOnChainActivity(
       if (nonceAtWindowStart >= 1) {
         // Already active before our visible window began: age is a lower bound.
         firstSeenBeforeWindow = true;
-        return blockTimestamp(scannedFromBlock);
+        return blockTimestamp(client, scannedFromBlock);
       }
       // Born within the window: find the exact block of the first tx.
-      return blockTimestamp(await firstBlockWithNonceAtLeast(readNonce, scannedFromBlock, latestBlock, 1));
+      return blockTimestamp(client, await firstBlockWithNonceAtLeast(readNonce, scannedFromBlock, latestBlock, 1));
     };
     // Last activity: first block that reached the current (final) nonce.
     const last = async (): Promise<number | null> =>
       lastSeenBeforeWindow
-        ? blockTimestamp(scannedFromBlock)
-        : blockTimestamp(await firstBlockWithNonceAtLeast(readNonce, scannedFromBlock, latestBlock, txCount));
+        ? blockTimestamp(client, scannedFromBlock)
+        : blockTimestamp(client, await firstBlockWithNonceAtLeast(readNonce, scannedFromBlock, latestBlock, txCount));
     [firstSeen, lastSeen] = await Promise.all([birth(), last()]);
   }
 
@@ -172,7 +173,7 @@ export async function fetchOnChainActivity(
     lastSeen,
     firstSeenBeforeWindow,
     lastSeenBeforeWindow,
-    windowDays: Math.round((WINDOW_BLOCKS * 0.3) / 86_400),
+    windowDays: windowDays(net),
     latestBlock,
     scannedFromBlock,
   };

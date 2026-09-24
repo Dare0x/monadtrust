@@ -3,7 +3,7 @@
 **Who wrote this agent's reviews?**
 
 AI agents on Monad collect reviews through [ERC-8004](https://eips.ethereum.org/EIPS/eip-8004), and any wallet can
-leave one. A wallet made five minutes ago counts the same as a customer of five months. MonadTrust checks every
+leave one. MonadTrust reads Monad **mainnet** (10,000+ registered agents) and testnet. A wallet made five minutes ago counts the same as a customer of five months. MonadTrust checks every
 reviewer of an agent and recomputes the rating from the ones that hold up, using only public chain data.
 
 Built for Monad Metropolis, Track 04: Trust, Identity & AI Infrastructure.
@@ -51,6 +51,10 @@ Then:
 
 - **Batches.** Three or more reviewers whose first transactions fall within 30 minutes of each other lose half their
   score. Real customers arrive over weeks; wallets made to leave reviews arrive together.
+- **Same footprint.** Three or more reviewers holding exactly the same balance (to the wei) after exactly the same
+  number of transactions also lose half their score. On mainnet, agent #182 has 7,665 reviewers; 59 of an even
+  sample of 60 hold exactly 0.002142 MON after exactly 3 transactions.
+- **Big agents.** Past 60 reviewers, an even sample of 60 across the order they reviewed in is read.
 - **Self-review.** The agent's own wallet never counts.
 - **The line.** A reviewer counts at 40/100.
 - **The recount.** The counted rating averages only counted reviews, per ERC-8004 tag. It equals
@@ -130,6 +134,9 @@ scripts/                    tests, mock chain, live check
 
 ## Chain details
 
+- Monad mainnet, chain ID 143. RPC `https://rpc.monad.xyz` (keeps ~7.5 days of state).
+- ERC-8004 IdentityRegistry `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`, ReputationRegistry
+  `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63`
 - Monad testnet, chain ID 10143. RPC `https://testnet-rpc.monad.xyz` (fallback `https://rpc.ankr.com/monad_testnet`).
 - ERC-8004 IdentityRegistry `0x8004A818BFB912233c491871b3d84c89A494BD9e`
 - ERC-8004 ReputationRegistry `0x8004B663056A597Dffe9eCcC1965A193B7388713`

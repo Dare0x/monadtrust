@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import BirthStrip from "@/components/BirthStrip";
 import type { AgentAudit, ReviewerVerdict } from "@/lib/types";
+import { useNet } from "@/components/useNet";
 
-const EXPLORER = "https://testnet.monadscan.com/address/";
 
 interface Payload {
   audit: AgentAudit;
@@ -30,7 +30,8 @@ const VERDICT_TONE: Record<AgentAudit["verdict"], string> = {
 };
 
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
-const fmt = (n: number | null) => (n === null ? "–" : Number.isInteger(n) ? String(n) : n.toFixed(1));
+const fmt = (n: number | null) =>
+  n === null ? "–" : Math.abs(n) >= 1e6 ? n.toExponential(1) : Number.isInteger(n) ? String(n) : n.toFixed(1);
 
 // Uses the exact first-transaction time where we have it; ageDays is rounded
 // to a tenth of a day, which is too coarse for wallets made hours ago.
@@ -43,7 +44,7 @@ function ageText(r: ReviewerVerdict, asOf: number): string {
   return `${Math.round(d)} days`;
 }
 
-function Loading({ id }: { id: string }) {
+function Loading({ id, netName }: { id: string; netName: string }) {
   const [secs, setSecs] = useState(0);
   useEffect(() => {
     const t = setInterval(() => setSecs((s) => s + 1), 1000);
@@ -58,14 +59,24 @@ function Loading({ id }: { id: string }) {
         <li>Finding wallets created in batches and recounting the rating</li>
       </ol>
       <p className="progress-sub">
-        {secs}s · an agent with many reviewers can take up to a minute on the free public RPC.
+        {secs}s · an agent with many reviewers can take up to a minute on {netName}&apos;s free public RPC.
       </p>
     </div>
   );
 }
 
-export default function AgentPage() {
+export default function AgentPageWrapper() {
+  return (
+    <Suspense>
+      <AgentPage />
+    </Suspense>
+  );
+}
+
+function AgentPage() {
   const { id } = useParams<{ id: string }>();
+  const { net, cfg, withNet } = useNet();
+  const EXPLORER = cfg.explorerAddress;
   const [data, setData] = useState<Payload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -74,7 +85,7 @@ export default function AgentPage() {
     let alive = true;
     setData(null);
     setError(null);
-    fetch(`/api/agent/${encodeURIComponent(id)}`)
+    fetch(withNet(`/api/agent/${encodeURIComponent(id)}`))
       .then(async (r) => {
         const body = await r.json();
         if (!alive) return;
@@ -85,12 +96,13 @@ export default function AgentPage() {
     return () => {
       alive = false;
     };
-  }, [id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, net]);
 
   if (error) {
     return (
       <main>
-        <Link className="back" href="/">
+        <Link className="back" href={withNet("/")}>
           All agents
         </Link>
         <div className="problem" role="alert">
@@ -103,10 +115,10 @@ export default function AgentPage() {
   if (!data) {
     return (
       <main>
-        <Link className="back" href="/">
+        <Link className="back" href={withNet("/")}>
           All agents
         </Link>
-        <Loading id={id} />
+        <Loading id={id} netName={cfg.name} />
       </main>
     );
   }
@@ -129,12 +141,12 @@ export default function AgentPage() {
 
   return (
     <main>
-      <Link className="back" href="/">
+      <Link className="back" href={withNet("/")}>
         All agents
       </Link>
 
       <header className="report-head">
-        <p className="report-kicker">Agent #{a.agent.agentId} on Monad testnet</p>
+        <p className="report-kicker">Agent #{a.agent.agentId} on {cfg.name}</p>
         <h1 className="report-name">{a.agent.card?.name ?? `Agent #${a.agent.agentId}`}</h1>
         {a.agent.card?.description && <p className="report-desc">{a.agent.card.description}</p>}
         <p className="report-owner">
@@ -171,7 +183,10 @@ export default function AgentPage() {
             <p className="rating-value">
               {tag.counted.average === null ? (
                 <>
-                  0<span className="rating-of">/{tag.listed.reviews}</span>
+                  0
+                  <span className="rating-of">
+                    /{a.reviewers.length < a.totals.reviewers ? `${a.reviewers.length} checked` : tag.listed.reviews}
+                  </span>
                 </>
               ) : (
                 fmt(tag.counted.average)
@@ -186,6 +201,34 @@ export default function AgentPage() {
             </p>
           </div>
         </div>
+      )}
+
+      {a.reviewers.length < a.totals.reviewers && (
+        <p className="sample-note">
+          This agent has {a.totals.reviewers.toLocaleString()} reviewers. MonadTrust read an even sample of{" "}
+          {a.reviewers.length} of them, spread across the order they reviewed in. The verdict and the counted rating come
+          from that sample; the listed rating uses every review.
+        </p>
+      )}
+
+      {(a.footprints?.length ?? 0) > 0 && (
+        <section className="block" aria-labelledby="footprint-title">
+          <h2 className="block-title" id="footprint-title">
+            Same balance, same activity
+          </h2>
+          <p className="block-intro">
+            Independent customers almost never hold exactly the same balance, to the last digit, after exactly the same
+            number of transactions. Wallets funded and run by one script do. Each group counts at half weight.
+          </p>
+          <ul className="footprints">
+            {a.footprints!.map((g) => (
+              <li key={`${g.balance}-${g.txCount}`}>
+                <strong>{g.size} wallets</strong> each hold exactly <span className="hex">{g.balance} MON</span> and have
+                made exactly {g.txCount} {g.txCount === 1 ? "transaction" : "transactions"}.
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {a.reviewers.length > 0 && (
@@ -208,7 +251,7 @@ export default function AgentPage() {
           </h2>
           <p className="block-intro">
             Each wallet is scored out of 100: 45% age, 40% activity of its own, 15% balance, halved if it was created in
-            a batch with others. Contracts are scored on age alone. A score of {a.rules.countThreshold} or more counts.
+            a batch with others or matches several others exactly in balance and transaction count. Contracts are scored on age alone. A score of {a.rules.countThreshold} or more counts.
           </p>
           <div className="rv-list">
             <div className="rv-row rv-head" aria-hidden="true">
@@ -343,7 +386,7 @@ export default function AgentPage() {
         </h2>
         <div className="limits">
           <p>
-            Monad&apos;s free RPC keeps about {a.asOf.windowDays} days of history, so any wallet older than that simply
+            {cfg.name}&apos;s free RPC keeps about {a.asOf.windowDays} days of history, so any wallet older than that simply
             reads as &ldquo;over {a.asOf.windowDays} days&rdquo;. It can&apos;t show who funded a wallet, so two wallets
             paid by the same person look independent unless they were created together.
           </p>

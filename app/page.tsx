@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { AgentAudit, AgentListing } from "@/lib/types";
+import { useNet } from "@/components/useNet";
 
 interface Featured {
   agentId: string;
@@ -12,6 +13,7 @@ interface Featured {
   listed: number | null;
   counted: number | null;
   reviewers: number;
+  read: number;
   struck: number;
   checkedAt: number;
   marks: boolean[];
@@ -33,7 +35,8 @@ const VERDICT_PILL: Record<AgentAudit["verdict"], { text: string; tone: string }
   none: { text: "No reviews", tone: "muted" },
 };
 
-const fmt = (v: number | null) => (v === null ? "—" : String(Math.round(v * 10) / 10));
+const fmt = (v: number | null) =>
+  v === null ? "—" : Math.abs(v) >= 1e6 ? v.toExponential(1) : String(Math.round(v * 10) / 10);
 
 function ago(unix: number): string {
   const s = Math.max(0, Date.now() / 1000 - unix);
@@ -42,8 +45,17 @@ function ago(unix: number): string {
   return `${Math.round(s / 86400)} days ago`;
 }
 
-export default function Home() {
+export default function HomePage() {
+  return (
+    <Suspense>
+      <Home />
+    </Suspense>
+  );
+}
+
+function Home() {
   const router = useRouter();
+  const { net, cfg, withNet } = useNet();
   const [id, setId] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [dir, setDir] = useState<Directory | null>(null);
@@ -51,7 +63,9 @@ export default function Home() {
 
   useEffect(() => {
     let alive = true;
-    fetch("/api/agents")
+    setDir(null);
+    setDirError(null);
+    fetch(withNet("/api/agents"))
       .then(async (r) => {
         const data = await r.json();
         if (!alive) return;
@@ -62,7 +76,8 @@ export default function Home() {
     return () => {
       alive = false;
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [net]);
 
   function audit() {
     const clean = id.trim().replace(/^#/, "");
@@ -71,7 +86,7 @@ export default function Home() {
       return;
     }
     setFormError(null);
-    router.push(`/agent/${clean}`);
+    router.push(withNet(`/agent/${clean}`));
   }
 
   const max = Math.max(1, ...(dir?.agents.map((a) => a.reviewers) ?? [1]));
@@ -80,7 +95,7 @@ export default function Home() {
   return (
     <main>
       <section className="hero">
-        <p className="kicker">ERC-8004 review checker for Monad testnet</p>
+        <p className="kicker">ERC-8004 review checker for {cfg.name}</p>
         <h1 className="hero-title">
           Who wrote this agent&apos;s reviews?
         </h1>
@@ -123,7 +138,7 @@ export default function Home() {
       </section>
 
       {f && (
-        <Link href={`/agent/${f.agentId}`} className="catch" aria-labelledby="catch-title">
+        <Link href={withNet(`/agent/${f.agentId}`)} className="catch" aria-labelledby="catch-title">
           <p className="catch-kicker">
             Flagged: agent #{f.agentId}
             {f.name ? ` (${f.name})` : ""}, checked {ago(f.checkedAt)}
@@ -133,12 +148,16 @@ export default function Home() {
               <h2 className="catch-title" id="catch-title">
                 {f.headline}
               </h2>
-              <div className="dots" aria-label={`${f.reviewers - f.struck} counted, ${f.struck} struck`}>
+              <div className="dots" aria-label={`${f.read - f.struck} counted, ${f.struck} struck`}>
                 {f.marks.map((ok, i) => (
                   <span key={i} className={ok ? "dot dot-good" : "dot dot-bad"} />
                 ))}
               </div>
-              <p className="catch-legend">One square per reviewer wallet. Red ones don&apos;t count.</p>
+              <p className="catch-legend">
+                One square per reviewer wallet checked
+                {f.read < f.reviewers ? ` (an even sample of ${f.read} out of ${f.reviewers.toLocaleString()})` : ""}. Red
+                ones don&apos;t count.
+              </p>
             </div>
             <div className="catch-score">
               <div className="catch-num">
@@ -149,8 +168,8 @@ export default function Home() {
                 <div className="catch-num">
                   <span className="catch-label">Reviews that hold up</span>
                   <span className="catch-value catch-zero">
-                    {f.reviewers - f.struck}
-                    <span className="catch-of"> of {f.reviewers}</span>
+                    {f.read - f.struck}
+                    <span className="catch-of"> of {f.read}</span>
                   </span>
                 </div>
               ) : (
@@ -172,7 +191,7 @@ export default function Home() {
           </h2>
           <p className="section-intro">
             {dir?.latestAgentId
-              ? `The most reviewed of the ${dir.scanned.toLocaleString()} newest agents, up to #${dir.latestAgentId}.`
+              ? `The most reviewed of ${dir.scanned === Number(dir.latestAgentId) || dir.scanned > Number(dir.latestAgentId) ? `all ${dir.scanned.toLocaleString()} agents` : `the ${dir.scanned.toLocaleString()} newest agents, up to #${dir.latestAgentId}`} on ${cfg.name}.`
               : "The most reviewed agents among recent registrations."}
           </p>
         </div>
@@ -191,7 +210,7 @@ export default function Home() {
           {dir?.agents.map((a) => {
             const pill = a.verdict ? VERDICT_PILL[a.verdict] : null;
             return (
-              <Link key={a.agentId} href={`/agent/${a.agentId}`} className="directory-row">
+              <Link key={a.agentId} href={withNet(`/agent/${a.agentId}`)} className="directory-row">
                 <span className="directory-id">#{a.agentId}</span>
                 <span className={a.name ? "directory-name" : "directory-name is-empty"}>{a.name ?? "Unnamed agent"}</span>
                 <span className="directory-count">
@@ -228,7 +247,10 @@ export default function Home() {
           </li>
           <li>
             <h3>Find the batches</h3>
-            <p>Three or more reviewers created within 30 minutes of each other lose half their score.</p>
+            <p>
+              Three or more reviewers created within 30 minutes of each other, or holding exactly the same balance after
+              the same number of transactions, lose half their score.
+            </p>
           </li>
           <li>
             <h3>Draw the line</h3>

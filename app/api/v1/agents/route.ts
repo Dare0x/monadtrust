@@ -1,7 +1,8 @@
 // GET /api/v1/agents — recently registered agents that have reviews, with the
 // verdict for any agent already checked. See /docs.
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { NETS, parseNet } from "@/lib/chain";
 import { knownAudits, listReviewedAgents } from "@/lib/service";
 import { CORS } from "@/lib/publicApi";
 
@@ -13,13 +14,15 @@ export function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS });
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const net = parseNet(req.nextUrl.searchParams.get("net"));
   try {
-    const list = await listReviewedAgents();
-    const audits = knownAudits();
+    const list = await listReviewedAgents(net);
+    const audits = knownAudits(net);
     return NextResponse.json(
       {
-        chainId: 10143,
+        network: net,
+        chainId: NETS[net].chainId,
         latestAgentId: list.latestAgentId,
         scanned: list.scanned,
         updatedAt: list.updatedAt,

@@ -1,7 +1,16 @@
 {
-  "contract": "ReviewerLists",
-  "chainId": 10143,
-  "address": null,
-  "reputationRegistry": "0x8004B663056A597Dffe9eCcC1965A193B7388713",
-  "publisher": null
+  "testnet": {
+    "contract": "ReviewerLists",
+    "chainId": 10143,
+    "address": null,
+    "reputationRegistry": "0x8004B663056A597Dffe9eCcC1965A193B7388713",
+    "publisher": null
+  },
+  "mainnet": {
+    "contract": "ReviewerLists",
+    "chainId": 143,
+    "address": null,
+    "reputationRegistry": "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63",
+    "publisher": null
+  }
 }
