@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import BirthStrip from "@/components/BirthStrip";
 import type { AgentAudit, ReviewerVerdict } from "@/lib/types";
 import { useNet } from "@/components/useNet";
+import { fmtRating, isAbsurd } from "@/lib/format";
 
 
 interface OnchainInfo {
@@ -36,8 +37,7 @@ const VERDICT_TONE: Record<AgentAudit["verdict"], string> = {
 };
 
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
-const fmt = (n: number | null) =>
-  n === null ? "–" : Math.abs(n) >= 1e6 ? n.toExponential(1) : Number.isInteger(n) ? String(n) : n.toFixed(1);
+const fmt = (v: number | null) => fmtRating(v, "–");
 
 // Uses the exact first-transaction time where we have it; ageDays is rounded
 // to a tenth of a day, which is too coarse for wallets made hours ago.
@@ -191,12 +191,13 @@ function AgentPage() {
         <div className="ratings">
           <div className={`rating rating-listed${moved ? " is-struck" : ""}`}>
             <p className="rating-label">Listed rating</p>
-            <p className="rating-value">
+            <p className={isAbsurd(tag.listed.average) ? "rating-value is-long" : "rating-value"}>
               {fmt(tag.listed.average)}
             </p>
             <p className="rating-note">
               {scaleNote}, {tag.listed.reviews} {tag.listed.reviews === 1 ? "review" : "reviews"} from{" "}
               {tag.listed.reviewers} {tag.listed.reviewers === 1 ? "wallet" : "wallets"}
+              {isAbsurd(tag.listed.average) && ". The reviews themselves carry absurd values, which is a sign of their own."}
             </p>
           </div>
           <div className={tag.counted.average === null ? "rating rating-counted is-zero" : "rating rating-counted"}>

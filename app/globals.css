@@ -598,6 +598,11 @@ a:hover {
   font-weight: 500;
   letter-spacing: -0.05em;
 }
+.rating-value.is-long,
+.catch-value.is-long {
+  font-size: clamp(2rem, 5vw, 3rem);
+  letter-spacing: -0.02em;
+}
 .rating-listed .rating-value {
   color: var(--text-3);
 }

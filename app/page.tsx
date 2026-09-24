@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { AgentAudit, AgentListing } from "@/lib/types";
 import { useNet } from "@/components/useNet";
+import { fmtRating, isAbsurd } from "@/lib/format";
 
 interface Featured {
   agentId: string;
@@ -35,8 +36,7 @@ const VERDICT_PILL: Record<AgentAudit["verdict"], { text: string; tone: string }
   none: { text: "No reviews", tone: "muted" },
 };
 
-const fmt = (v: number | null) =>
-  v === null ? "—" : Math.abs(v) >= 1e6 ? v.toExponential(1) : String(Math.round(v * 10) / 10);
+const fmt = (v: number | null) => fmtRating(v, "—");
 
 function ago(unix: number): string {
   const s = Math.max(0, Date.now() / 1000 - unix);
@@ -162,7 +162,9 @@ function Home() {
             <div className="catch-score">
               <div className="catch-num">
                 <span className="catch-label">Listed rating</span>
-                <span className="catch-value catch-listed">{fmt(f.listed)}</span>
+                <span className={isAbsurd(f.listed) ? "catch-value catch-listed is-long" : "catch-value catch-listed"}>
+                  {fmt(f.listed)}
+                </span>
               </div>
               {f.counted === null ? (
                 <div className="catch-num">
