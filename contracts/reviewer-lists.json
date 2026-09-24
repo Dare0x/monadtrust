@@ -11,8 +11,10 @@
   "mainnet": {
     "contract": "ReviewerLists",
     "chainId": 143,
-    "address": null,
+    "address": "0x9cFb885F029e239c254ddB9F690d375F0684D2F7",
     "reputationRegistry": "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63",
-    "publisher": null
+    "publisher": "0x3Ba58C63462B6fb640F5821e59d704ea4C36c8FF",
+    "txHash": "0x47c8931a16bba4324fc72b43947e444f8d44fe439703f8db7e1a841dd10cabf1",
+    "deployedAt": "2026-09-24T08:40:43.331Z"
   }
 }

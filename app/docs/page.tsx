@@ -62,7 +62,7 @@ contract AgentMarketplace {
 
 const CAST = `cast call ${LISTS} \\
   "getSummary(address,uint256,string,string)(uint64,int128,uint8)" \\
-  ${PUBLISHER} 1778 "prediction" "" \\
+  ${PUBLISHER} 157 "Auction" "" \\
   --rpc-url ${RPC}`;
 
 const SELF = `git clone https://github.com/Dare0x/monadtrust && cd monadtrust
