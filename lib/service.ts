@@ -47,12 +47,17 @@ export async function runAudit(agentIdStr: string): Promise<AgentAudit> {
   return refreshAudit(agentIdStr);
 }
 
-// The clearest case of stuffed reviews we know of right now, for the homepage.
-export function featuredCatch(): AgentAudit | null {
+// Every audit we have on hand: saved ones, overlaid with fresher live ones.
+export function knownAudits(): Map<string, AgentAudit> {
   const all = new Map<string, AgentAudit>(Object.entries(SAVED_AUDITS));
   for (const [id, c] of auditCache) all.set(id, c.value);
+  return all;
+}
+
+// The clearest case of stuffed reviews we know of right now, for the homepage.
+export function featuredCatch(): AgentAudit | null {
   let best: AgentAudit | null = null;
-  for (const a of all.values()) {
+  for (const a of knownAudits().values()) {
     if (a.verdict !== "inflated") continue;
     if (!best || a.totals.struck > best.totals.struck || (a.totals.struck === best.totals.struck && a.asOf.block > best.asOf.block)) best = a;
   }

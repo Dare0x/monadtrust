@@ -21,14 +21,24 @@ const VERDICT_TEXT: Record<AgentAudit["verdict"], string> = {
   none: "No reviews yet",
 };
 
+const VERDICT_TONE: Record<AgentAudit["verdict"], string> = {
+  organic: "good",
+  mixed: "warn",
+  inflated: "bad",
+  thin: "muted",
+  none: "muted",
+};
+
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 const fmt = (n: number | null) => (n === null ? "–" : Number.isInteger(n) ? String(n) : n.toFixed(1));
 
-function ageText(r: ReviewerVerdict): string {
-  const d = r.facts.ageDays;
-  if (d === null) return "unknown";
-  if (r.facts.ageIsLowerBound) return `over ${d} days`;
-  if (d < 1 / 24) return "under an hour";
+// Uses the exact first-transaction time where we have it; ageDays is rounded
+// to a tenth of a day, which is too coarse for wallets made hours ago.
+function ageText(r: ReviewerVerdict, asOf: number): string {
+  if (r.facts.ageDays === null) return "unknown";
+  if (r.facts.ageIsLowerBound) return `over ${r.facts.ageDays} days`;
+  const d = r.facts.firstTxAt !== null ? (asOf - r.facts.firstTxAt) / 86400 : r.facts.ageDays;
+  if (d < 1 / 24) return `${Math.max(1, Math.round(d * 1440))} min`;
   if (d < 1) return `${Math.round(d * 24)} h`;
   return `${Math.round(d)} days`;
 }
@@ -42,13 +52,13 @@ function Loading({ id }: { id: string }) {
   return (
     <div className="progress" role="status" aria-live="polite">
       <div className="progress-line" />
-      <p className="progress-text">
-        {secs < 3
-          ? `Reading agent #${id}'s reviews from the ERC-8004 registry.`
-          : "Reading each reviewer's wallet history on Monad testnet."}
-      </p>
+      <ol className="progress-steps">
+        <li className={secs < 3 ? "is-on" : "is-done"}>Reading agent #{id}&apos;s reviews from the ERC-8004 registry</li>
+        <li className={secs >= 3 ? "is-on" : ""}>Tracing each reviewer wallet back to its first transaction</li>
+        <li>Finding wallets created in batches and recounting the rating</li>
+      </ol>
       <p className="progress-sub">
-        {secs}s. An agent with many reviewers can take up to a minute on the free public RPC.
+        {secs}s · an agent with many reviewers can take up to a minute on the free public RPC.
       </p>
     </div>
   );
@@ -139,11 +149,10 @@ export default function AgentPage() {
         </p>
       </header>
 
-      <p className="finding">{a.headline}</p>
-      <p className={`verdict verdict-${a.verdict}`}>
-        <span className="verdict-mark" aria-hidden="true" />
-        {VERDICT_TEXT[a.verdict]}
-      </p>
+      <div className={`verdict-banner tone-${VERDICT_TONE[a.verdict]}`}>
+        <span className={`pill pill-${VERDICT_TONE[a.verdict]}`}>{VERDICT_TEXT[a.verdict]}</span>
+        <p className="finding">{a.headline}</p>
+      </div>
 
       {tag && (
         <div className="ratings">
@@ -157,9 +166,17 @@ export default function AgentPage() {
               {tag.listed.reviewers} {tag.listed.reviewers === 1 ? "wallet" : "wallets"}
             </p>
           </div>
-          <div className="rating rating-counted">
-            <p className="rating-label">Counted rating</p>
-            <p className="rating-value">{fmt(tag.counted.average)}</p>
+          <div className={tag.counted.average === null ? "rating rating-counted is-zero" : "rating rating-counted"}>
+            <p className="rating-label">{tag.counted.average === null ? "Reviews that hold up" : "Real rating"}</p>
+            <p className="rating-value">
+              {tag.counted.average === null ? (
+                <>
+                  0<span className="rating-of">/{tag.listed.reviews}</span>
+                </>
+              ) : (
+                fmt(tag.counted.average)
+              )}
+            </p>
             <p className="rating-note">
               {tag.counted.reviews === 0
                 ? "No reviewer passed the check"
@@ -193,55 +210,44 @@ export default function AgentPage() {
             Each wallet is scored out of 100: 45% age, 40% activity of its own, 15% balance, halved if it was created in
             a batch with others. Contracts are scored on age alone. A score of {a.rules.countThreshold} or more counts.
           </p>
-          <div className="table-wrap">
-            <table className="reviewers">
-              <thead>
-                <tr>
-                  <th scope="col">Wallet</th>
-                  <th scope="col" className="num">
-                    Reviews
-                  </th>
-                  <th scope="col" className="num">
-                    First transaction
-                  </th>
-                  <th scope="col" className="num">
-                    Other transactions
-                  </th>
-                  <th scope="col" className="num">
-                    Score
-                  </th>
-                  <th scope="col">Result</th>
-                </tr>
-              </thead>
-              <tbody>
-                {a.reviewers.map((r) => (
-                  <tr key={r.address}>
-                    <td>
-                      <a className="hex" href={EXPLORER + r.address} target="_blank" rel="noreferrer">
-                        {short(r.address)}
-                      </a>
-                    </td>
-                    <td className="num">{r.reviews}</td>
-                    <td className="num">{ageText(r)}</td>
-                    <td className="num">{r.facts.isContract ? "contract" : r.facts.otherTxCount.toLocaleString()}</td>
-                    <td className="num">
-                      <span className="cred">
-                        <span className="cred-bar" aria-hidden="true">
-                          <span className="cred-fill" style={{ width: `${r.credibility}%` }} />
-                        </span>
-                        {r.credibility}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={r.counted ? "status status-counted" : "status status-struck"}>
-                        {r.counted ? "Counted" : "Not counted"}
-                      </span>
-                      <p className="reason">{r.reasons.join(" ")}</p>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="rv-list">
+            <div className="rv-row rv-head" aria-hidden="true">
+              <span>Wallet</span>
+              <span className="num">Reviews</span>
+              <span className="num">Age</span>
+              <span className="num">Other txs</span>
+              <span>Score</span>
+              <span className="rv-status">Result</span>
+            </div>
+            {a.reviewers.map((r) => (
+              <div className={r.counted ? "rv-row" : "rv-row is-struck"} key={r.address}>
+                <a className="hex rv-addr" href={EXPLORER + r.address} target="_blank" rel="noreferrer">
+                  {short(r.address)}
+                </a>
+                <span className="num" data-k="Reviews">
+                  {r.reviews}
+                </span>
+                <span className="num" data-k="Age">
+                  {ageText(r, a.asOf.timestamp)}
+                </span>
+                <span className="num" data-k="Other txs">
+                  {r.facts.isContract ? "contract" : r.facts.otherTxCount.toLocaleString()}
+                </span>
+                <span className="cred" data-k="Score">
+                  <span className="cred-bar" aria-hidden="true">
+                    <span
+                      className={r.counted ? "cred-fill" : "cred-fill is-bad"}
+                      style={{ width: `${Math.max(2, r.credibility)}%` }}
+                    />
+                  </span>
+                  <span className="cred-num">{r.credibility}</span>
+                </span>
+                <span className="rv-status">
+                  <span className={r.counted ? "pill pill-good" : "pill pill-bad"}>{r.counted ? "Counted" : "Struck"}</span>
+                </span>
+                <p className="reason">{r.reasons.join(" ")}</p>
+              </div>
+            ))}
           </div>
           {a.notAnalyzed.length > 0 && (
             <p className="block-intro">

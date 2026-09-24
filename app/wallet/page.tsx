@@ -59,7 +59,13 @@ export default function WalletPage() {
   return (
     <main>
       <section className="hero">
-        <h1 className="hero-title">Check one wallet</h1>
+        <p className="eyebrow">
+          <span className="net-dot" aria-hidden="true" />
+          Single-wallet check
+        </p>
+        <h1 className="hero-title">
+          How real is <span className="grad">this wallet?</span>
+        </h1>
         <p className="hero-lede">
           The same measure MonadTrust applies to every reviewer: how long a wallet has existed on Monad testnet, how
           much it has done, and how recently.
@@ -72,8 +78,7 @@ export default function WalletPage() {
           }}
         >
           <input
-            className="lookup-input hex"
-            style={{ paddingLeft: 16 }}
+            className="lookup-input hex is-wide"
             aria-label="Wallet address"
             placeholder="0x…"
             spellCheck={false}

@@ -1,11 +1,12 @@
 // GET /api/agents
 //
 // Lists recently registered ERC-8004 agents on Monad testnet that have at least
-// one review, busiest first. Cached for ten minutes: discovery reads a few
-// thousand registry slots and doesn't need to be live to the second.
+// one review, busiest first, with the verdict for any agent already audited and
+// the clearest current case of stuffed reviews. Served from the saved list and
+// refreshed from the chain in the background.
 
 import { NextResponse } from "next/server";
-import { featuredCatch, listReviewedAgents } from "@/lib/service";
+import { featuredCatch, knownAudits, listReviewedAgents } from "@/lib/service";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -14,6 +15,8 @@ export const maxDuration = 60;
 export async function GET() {
   try {
     const list = await listReviewedAgents();
+    const audits = knownAudits();
+
     const f = featuredCatch();
     const tag = f?.tags.find((t) => t.tag === f.headlineTag) ?? f?.tags[0];
     const featured =
@@ -27,11 +30,26 @@ export async function GET() {
             reviewers: f.totals.reviewers,
             struck: f.totals.struck,
             checkedAt: f.asOf.timestamp,
+            marks: f.reviewers.map((r) => r.counted),
           }
         : null;
-    return NextResponse.json({ ...list, featured }, {
-      headers: { "cache-control": "public, s-maxage=600, stale-while-revalidate=3600" },
-    });
+
+    let reviewersChecked = 0;
+    let struck = 0;
+    for (const a of audits.values()) {
+      reviewersChecked += a.totals.reviewers;
+      struck += a.totals.struck;
+    }
+
+    return NextResponse.json(
+      {
+        ...list,
+        agents: list.agents.map((a) => ({ ...a, verdict: audits.get(a.agentId)?.verdict ?? null })),
+        featured,
+        stats: { agentsAudited: audits.size, reviewersChecked, struck },
+      },
+      { headers: { "cache-control": "public, s-maxage=60, stale-while-revalidate=600" } }
+    );
   } catch (err) {
     return NextResponse.json(
       { error: "Couldn't read the agent registry from Monad testnet right now.", detail: (err as Error).message },
