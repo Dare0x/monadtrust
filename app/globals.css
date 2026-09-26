@@ -1,6 +1,6 @@
 /* MonadTrust — plain and dense, like a block explorer. One sans for
-   everything, mono for anything that came off the chain. Color is kept for meaning: green holds up, red doesn't, and
-   Monad's violet marks what you can press. */
+   everything, mono for anything that came off the chain. Two colors, each with one meaning: Monad violet for what
+   holds up (and what you can press), red for what doesn't. Everything else is grey. */
 
 :root {
   color-scheme: dark;
@@ -15,12 +15,12 @@
   --text-3: #75727f;
   --violet: #8b76ff;
   --violet-2: #b3a6ff;
-  --good: #5fd3a2;
-  --good-bg: rgba(95, 211, 162, 0.1);
+  --good: #a08fff;
+  --good-bg: rgba(160, 143, 255, 0.12);
   --bad: #f2555a;
   --bad-bg: rgba(242, 85, 90, 0.1);
-  --warn: #e9b44c;
-  --warn-bg: rgba(233, 180, 76, 0.1);
+  --warn: var(--text-2);
+  --warn-bg: rgba(169, 166, 178, 0.1);
   /* Older names the timeline still uses. */
   --counted: var(--good);
   --struck: var(--bad);
