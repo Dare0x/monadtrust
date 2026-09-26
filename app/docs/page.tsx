@@ -69,6 +69,7 @@ const SELF = `git clone https://github.com/Dare0x/monadtrust && cd monadtrust
 npm install
 npm run audit -- 182                  # mainnet: verdict, counted list, auditHash
 npm run audit -- 1924 testnet         # testnet
+npm run audit -- 182 --block <n>      # re-run a published audit: same block, same auditHash
 MONAD_MAINNET_RPC_URLS=https://your-rpc npm run audit -- 182   # your own endpoint`;
 
 const PUBLISH = `// Lists must be strictly ascending (no duplicates). An empty list means
@@ -150,7 +151,9 @@ export default function Docs() {
         <h2 className="block-title">Run it yourself</h2>
         <p className="block-intro">
           You don&apos;t have to trust our server. The audit is open source and deterministic: the same block gives the
-          same result and the same <code>auditHash</code>, on any machine. It only needs a Monad RPC, no keys.
+          same result and the same <code>auditHash</code>, on any machine. It only needs a Monad RPC, no keys. To
+          check a published list, pass the block it records with <code>--block</code>; the public mainnet RPC keeps
+          about six days of state, and an archive RPC goes back further.
         </p>
         <pre className="code">{SELF}</pre>
       </section>
@@ -201,8 +204,8 @@ export default function Docs() {
             <tr>
               <td>Short history</td>
               <td>
-                Wallets older than the RPC&apos;s window (about 7 days on mainnet, 28 on testnet) get age credit for the
-                window only.
+                Wallets older than the RPC&apos;s window (about 5 days on mainnet, 28 on testnet) get age credit for the
+                window only, and never less than half marks: a short window says nothing bad about an older wallet.
               </td>
             </tr>
             <tr>

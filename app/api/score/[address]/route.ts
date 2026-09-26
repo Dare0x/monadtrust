@@ -1,14 +1,14 @@
 // GET /api/score/:address
 //
 // Validates the address, reads verifiable on-chain activity from Monad
-// testnet, and returns a deterministic trust score. No secrets, no API keys,
+// (mainnet by default, ?net=testnet for testnet), and returns a deterministic trust score. No secrets, no API keys,
 // no external services — just public RPC. Every field in the response is
 // reproducible by anyone with the same RPC endpoint.
 
 import { NextRequest, NextResponse } from "next/server";
 import { fetchOnChainActivity } from "@/lib/monad";
 import { computeTrustScore } from "@/lib/engine";
-import { parseNet } from "@/lib/chain";
+import { NETS, parseNet } from "@/lib/chain";
 
 // Always run fresh — chain state changes constantly, never cache a score.
 export const dynamic = "force-dynamic";
@@ -32,8 +32,9 @@ export async function GET(
     );
   }
 
+  const net = parseNet(req.nextUrl.searchParams.get("net"));
   try {
-    const activity = await fetchOnChainActivity(address, parseNet(req.nextUrl.searchParams.get("net")));
+    const activity = await fetchOnChainActivity(address, net);
     const result = computeTrustScore(activity);
     return NextResponse.json(result, {
       status: 200,
@@ -44,7 +45,7 @@ export async function GET(
     return NextResponse.json(
       {
         error:
-          "Could not read this address from Monad testnet right now. The public RPC may be busy — please try again.",
+          `Could not read this address from ${NETS[net].name} right now. The public RPC may be busy — please try again.`,
         detail: (err as Error).message,
       },
       { status: 502 }

@@ -108,7 +108,7 @@ export async function firstBlockWithNonceAtLeast(
 
 /**
  * Pulls a normalized, verifiable snapshot of on-chain activity for `address`
- * on Monad testnet. Uses direct reads (balance/nonce/code) plus a bounded
+ * on Monad (mainnet by default). Uses direct reads (balance/nonce/code) plus a bounded
  * binary search over the historical nonce for age and recency.
  */
 export async function fetchOnChainActivity(address: string, net: Net = DEFAULT_NET): Promise<OnChainActivity> {
@@ -139,29 +139,36 @@ export async function fetchOnChainActivity(address: string, net: Net = DEFAULT_N
 
   // Age/recency only make sense once the account has sent at least one tx.
   if (txCount > 0) {
-    const nonceAtWindowStart = await readNonce(scannedFromBlock);
+    try {
+      const nonceAtWindowStart = await readNonce(scannedFromBlock);
 
-    // If the account had already reached its final nonce before our window
-    // began, its most recent transaction predates what we can see — so
-    // "last active" is only a lower bound (at least this long ago).
-    if (nonceAtWindowStart >= txCount) lastSeenBeforeWindow = true;
+      // If the account had already reached its final nonce before our window
+      // began, its most recent transaction predates what we can see — so
+      // "last active" is only a lower bound (at least this long ago).
+      if (nonceAtWindowStart >= txCount) lastSeenBeforeWindow = true;
 
-    // Birth and last activity are independent searches, so run them together.
-    const birth = async (): Promise<number | null> => {
-      if (nonceAtWindowStart >= 1) {
-        // Already active before our visible window began: age is a lower bound.
-        firstSeenBeforeWindow = true;
-        return blockTimestamp(client, scannedFromBlock);
-      }
-      // Born within the window: find the exact block of the first tx.
-      return blockTimestamp(client, await firstBlockWithNonceAtLeast(readNonce, scannedFromBlock, latestBlock, 1));
-    };
-    // Last activity: first block that reached the current (final) nonce.
-    const last = async (): Promise<number | null> =>
-      lastSeenBeforeWindow
-        ? blockTimestamp(client, scannedFromBlock)
-        : blockTimestamp(client, await firstBlockWithNonceAtLeast(readNonce, scannedFromBlock, latestBlock, txCount));
-    [firstSeen, lastSeen] = await Promise.all([birth(), last()]);
+      // Birth and last activity are independent searches, so run them together.
+      const birth = async (): Promise<number | null> => {
+        if (nonceAtWindowStart >= 1) {
+          // Already active before our visible window began: age is a lower bound.
+          firstSeenBeforeWindow = true;
+          return blockTimestamp(client, scannedFromBlock);
+        }
+        // Born within the window: find the exact block of the first tx.
+        return blockTimestamp(client, await firstBlockWithNonceAtLeast(readNonce, scannedFromBlock, latestBlock, 1));
+      };
+      // Last activity: first block that reached the current (final) nonce.
+      const last = async (): Promise<number | null> =>
+        lastSeenBeforeWindow
+          ? blockTimestamp(client, scannedFromBlock)
+          : blockTimestamp(client, await firstBlockWithNonceAtLeast(readNonce, scannedFromBlock, latestBlock, txCount));
+      [firstSeen, lastSeen] = await Promise.all([birth(), last()]);
+    } catch {
+      // The RPC couldn't serve this address's history just now. Report the
+      // age as unknown rather than failing the whole check.
+      firstSeen = lastSeen = null;
+      firstSeenBeforeWindow = lastSeenBeforeWindow = false;
+    }
   }
 
   return {

@@ -1,6 +1,6 @@
 // Glue between the chain readers and the deterministic audit engine.
 
-import { rpcFor } from "./rpc";
+import { blockTag, rpcFor } from "./rpc";
 import { DEFAULT_NET, NETS, type Net, windowDays } from "./chain";
 import { fetchAgentIdentity, fetchFeedback, findLatestAgentId, resolveAgentCard } from "./erc8004";
 import { fetchReviewerSnapshots, readChainContext } from "./reviewers";
@@ -67,15 +67,18 @@ export function featuredCatch(net: Net = DEFAULT_NET): AgentAudit | null {
   return best;
 }
 
-// Always reads the chain.
-export async function auditLive(agentIdStr: string, net: Net = DEFAULT_NET): Promise<AgentAudit> {
+// Always reads the chain. Every read is pinned to one block, so the same
+// block always gives the same audit and auditHash. Pass `block` to re-run an
+// earlier audit (the RPC must still hold that block's state).
+export async function auditLive(agentIdStr: string, net: Net = DEFAULT_NET, opts: { block?: number } = {}): Promise<AgentAudit> {
   const rpc = rpcFor(net);
   const cfg = NETS[net];
   const agentId = BigInt(agentIdStr);
-  const [ctx, agent, feedback] = await Promise.all([
-    readChainContext(rpc, cfg.windowBlocks),
-    fetchAgentIdentity(rpc, agentId),
-    fetchFeedback(rpc, agentId).catch((e) => {
+  const ctx = await readChainContext(rpc, cfg.windowBlocks, opts.block);
+  const at = blockTag(ctx.latestBlock);
+  const [agent, feedback] = await Promise.all([
+    fetchAgentIdentity(rpc, agentId, at),
+    fetchFeedback(rpc, agentId, at).catch((e) => {
       // readAllFeedback reverts for unknown agents on some deployments.
       if (String(e?.message ?? "").toLowerCase().includes("revert")) return [];
       throw e;
@@ -117,7 +120,7 @@ export async function auditLive(agentIdStr: string, net: Net = DEFAULT_NET): Pro
       })
       .catch(() => null);
   }
-  auditCache.set(key(net, agentIdStr), { at: Date.now(), value: audit });
+  if (opts.block === undefined) auditCache.set(key(net, agentIdStr), { at: Date.now(), value: audit });
   return audit;
 }
 

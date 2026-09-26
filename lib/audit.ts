@@ -36,6 +36,10 @@ export const RULES = {
   burstWindowMinutes: 30, // first transactions this close together form a burst
   burstMinSize: 3, // wallets needed to call it a burst
   ageSaturationDays: 14, // age score reaches 100 at this many days
+  // A wallet older than everything the RPC shows scores at least this for age.
+  // The public mainnet RPC keeps ~5 days: a wallet older than that is not
+  // suspicious, so a short window must not push it below neutral.
+  minAgeBeyondWindow: 50,
   weights: { age: 0.45, activity: 0.4, balance: 0.15 },
 } as const;
 
@@ -131,9 +135,9 @@ function judgeReviewer(
   if (snap.firstTxBeforeWindow) {
     ageDays = windowDays;
     ageIsLowerBound = true;
-    // We only know it's older than the window. Credit what we can see: on a
-    // 7-day window that's half marks, not full ones.
-    age = clamp((windowDays / RULES.ageSaturationDays) * 100);
+    // We only know it's older than the window. Credit what we can see, and
+    // never less than half marks (a 28-day window earns full marks).
+    age = Math.max(RULES.minAgeBeyondWindow, clamp((windowDays / RULES.ageSaturationDays) * 100));
   } else if (snap.firstTxAt !== null) {
     ageDays = Math.max(0, (asOf - snap.firstTxAt) / DAY);
     age = clamp((ageDays / RULES.ageSaturationDays) * 100);

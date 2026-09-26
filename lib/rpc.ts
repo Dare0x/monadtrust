@@ -140,7 +140,7 @@ export class RpcClient {
   }
 
   ethCall(to: string, data: string, block: string = "latest"): Promise<string> {
-    return this.call<string>("eth_call", [{ to, data }, block]);
+    return this.call<string>("eth_call", [{ to, data }, block], { archive: block !== "latest" });
   }
 
   private schedule() {

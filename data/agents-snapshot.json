@@ -1,6 +1,6 @@
 {
   "testnet": {
-    "latestAgentId": "1924",
+    "latestAgentId": "1932",
     "scanned": 1500,
     "agents": [
       {
@@ -100,6 +100,36 @@
         "owner": "0xd792e62177584ebf5237d24d26eb4842387ba93a"
       },
       {
+        "agentId": "1930",
+        "reviewers": 1,
+        "name": "Docket showcase mandate",
+        "owner": "0x26027f01110e4d3581c470f9b98e5dd5ef1e2579"
+      },
+      {
+        "agentId": "1929",
+        "reviewers": 1,
+        "name": "HumanCLI demo worker",
+        "owner": "0x573185a99d5f55aa2b6cb2da9dadd70a06fac806"
+      },
+      {
+        "agentId": "1928",
+        "reviewers": 1,
+        "name": "HumanCLI demo buyer agent",
+        "owner": "0x28d99765a108279ca8a92cc6543b6104ceeb33be"
+      },
+      {
+        "agentId": "1927",
+        "reviewers": 1,
+        "name": "BACKSTOP reference endpoint",
+        "owner": "0x95a9795b459d77fc1dff7dba4da14580341ef9ee"
+      },
+      {
+        "agentId": "1926",
+        "reviewers": 1,
+        "name": "Outside agent (e2e)",
+        "owner": "0x8e8ecd90d188095d1914797edb639eb9b9764c66"
+      },
+      {
         "agentId": "1908",
         "reviewers": 1,
         "name": "agentfromzero",
@@ -152,43 +182,13 @@
         "reviewers": 1,
         "name": null,
         "owner": "0xea682f1970bb3377498a4910bc237ce849da64fd"
-      },
-      {
-        "agentId": "1869",
-        "reviewers": 1,
-        "name": null,
-        "owner": "0x61c780065c2f803588201f4469b2f80484da448f"
-      },
-      {
-        "agentId": "1851",
-        "reviewers": 1,
-        "name": null,
-        "owner": "0x69d30ae9b520e8fa352c536fd97f3cd29da2fbda"
-      },
-      {
-        "agentId": "1831",
-        "reviewers": 1,
-        "name": null,
-        "owner": "0x61c780065c2f803588201f4469b2f80484da448f"
-      },
-      {
-        "agentId": "1830",
-        "reviewers": 1,
-        "name": "Credence Demo Borrower",
-        "owner": "0x2a442c45bbb5b2e97981b8fc8855bb5437f52754"
-      },
-      {
-        "agentId": "1808",
-        "reviewers": 1,
-        "name": null,
-        "owner": "0x4e711a98a9a193317d60ba5f35d5fa7ca2315c47"
       }
     ],
-    "updatedAt": "2026-09-24T07:50:11.957Z"
+    "updatedAt": "2026-09-26T14:58:36.562Z"
   },
   "mainnet": {
-    "latestAgentId": "10255",
-    "scanned": 10256,
+    "latestAgentId": "10259",
+    "scanned": 10260,
     "agents": [
       {
         "agentId": "182",
@@ -371,6 +371,6 @@
         "owner": "0x52ce108ae72712929fd2b8c6177a9b39e0ccf644"
       }
     ],
-    "updatedAt": "2026-09-24T07:48:44.160Z"
+    "updatedAt": "2026-09-26T14:57:10.205Z"
   }
 }

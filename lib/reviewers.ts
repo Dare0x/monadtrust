@@ -13,16 +13,19 @@ export interface ChainContext {
   latestBlock: number;
   latestTimestamp: number;
   windowStart: number;
+  // Pinned to a past block: even "current" reads then need historical state.
+  pinned?: boolean;
 }
 
-export async function readChainContext(rpc: RpcClient, windowBlocks: number): Promise<ChainContext> {
-  const latestHex = await rpc.call<string>("eth_blockNumber");
-  const latestBlock = hexToNumber(latestHex);
+// `atBlock` pins the audit to an earlier block instead of the chain head.
+export async function readChainContext(rpc: RpcClient, windowBlocks: number, atBlock?: number): Promise<ChainContext> {
+  const latestBlock = atBlock ?? hexToNumber(await rpc.call<string>("eth_blockNumber"));
   const block = await rpc.call<{ timestamp: string } | null>("eth_getBlockByNumber", [blockTag(latestBlock), false]);
   return {
     latestBlock,
     latestTimestamp: block ? hexToNumber(block.timestamp) : Math.floor(Date.now() / 1000),
     windowStart: Math.max(0, latestBlock - windowBlocks),
+    pinned: atBlock !== undefined,
   };
 }
 
@@ -60,10 +63,11 @@ async function snapshotOne(
   ts: (block: number) => Promise<number | null>
 ): Promise<ReviewerSnapshot> {
   const latest = blockTag(ctx.latestBlock);
+  const now = { archive: !!ctx.pinned };
   const [balHex, nonceHex, code] = await Promise.all([
-    rpc.call<string>("eth_getBalance", [address, latest]),
-    rpc.call<string>("eth_getTransactionCount", [address, latest]),
-    rpc.call<string>("eth_getCode", [address, latest]),
+    rpc.call<string>("eth_getBalance", [address, latest], now),
+    rpc.call<string>("eth_getTransactionCount", [address, latest], now),
+    rpc.call<string>("eth_getCode", [address, latest], now),
   ]);
   const snap: ReviewerSnapshot = {
     address,

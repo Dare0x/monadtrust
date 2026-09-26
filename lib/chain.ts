@@ -40,8 +40,11 @@ export const NETS: Record<Net, NetConfig> = {
     explorerTx: "https://monadscan.com/tx/",
     defaultRpcs: ["https://rpc.monad.xyz"],
     rpcEnv: "MONAD_MAINNET_RPC_URLS",
-    // The public mainnet RPC keeps ~2.1M blocks (~7.5 days) of state.
-    windowBlocks: 2_000_000,
+    // The public mainnet RPC keeps a rolling ~1.8M blocks (~6.3 days at 0.3s)
+    // of state, and that has shrunk before (it was ~2.1M in Sep 2026). Look
+    // back 1.4M blocks (~4.9 days) so reads stay inside it with room to spare,
+    // including re-runs pinned to a block from a day or so ago.
+    windowBlocks: 1_400_000,
     scanSpan: 20_000,
   },
   testnet: {

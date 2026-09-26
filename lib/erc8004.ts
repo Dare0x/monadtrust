@@ -24,15 +24,15 @@ const reputationAbi = new Interface([
 
 const ZERO = "0x0000000000000000000000000000000000000000";
 
-async function callIdentity(rpc: RpcClient, fn: string, args: unknown[]) {
+async function callIdentity(rpc: RpcClient, fn: string, args: unknown[], block = "latest") {
   const data = identityAbi.encodeFunctionData(fn, args);
-  const raw = await rpc.ethCall(NETS[rpc.net].identityRegistry, data);
+  const raw = await rpc.ethCall(NETS[rpc.net].identityRegistry, data, block);
   return identityAbi.decodeFunctionResult(fn, raw);
 }
 
-async function callReputation(rpc: RpcClient, fn: string, args: unknown[]) {
+async function callReputation(rpc: RpcClient, fn: string, args: unknown[], block = "latest") {
   const data = reputationAbi.encodeFunctionData(fn, args);
-  const raw = await rpc.ethCall(NETS[rpc.net].reputationRegistry, data);
+  const raw = await rpc.ethCall(NETS[rpc.net].reputationRegistry, data, block);
   return reputationAbi.decodeFunctionResult(fn, raw);
 }
 
@@ -47,19 +47,20 @@ export async function agentExists(rpc: RpcClient, agentId: bigint): Promise<bool
   }
 }
 
-export async function fetchAgentIdentity(rpc: RpcClient, agentId: bigint): Promise<AgentIdentity | null> {
+// `block` pins every read to one block (hex tag), so an audit is reproducible.
+export async function fetchAgentIdentity(rpc: RpcClient, agentId: bigint, block = "latest"): Promise<AgentIdentity | null> {
   let owner: string;
   try {
-    owner = (await callIdentity(rpc, "ownerOf", [agentId]))[0] as string;
+    owner = (await callIdentity(rpc, "ownerOf", [agentId], block))[0] as string;
   } catch (e) {
     if (e instanceof RpcRevertError) return null; // not registered
     throw e;
   }
   const [uri, wallet] = await Promise.all([
-    callIdentity(rpc, "tokenURI", [agentId])
+    callIdentity(rpc, "tokenURI", [agentId], block)
       .then((r) => r[0] as string)
       .catch(() => ""),
-    callIdentity(rpc, "getAgentWallet", [agentId])
+    callIdentity(rpc, "getAgentWallet", [agentId], block)
       .then((r) => r[0] as string)
       .catch(() => ZERO),
   ]);
@@ -78,14 +79,14 @@ export async function fetchAgentIdentity(rpc: RpcClient, agentId: bigint): Promi
 // reviewers instead.
 const FEEDBACK_PAGE = 150;
 
-export async function fetchFeedback(rpc: RpcClient, agentId: bigint): Promise<FeedbackEntry[]> {
-  const clients = ((await callReputation(rpc, "getClients", [agentId]))[0] as string[]).map((c) => c.toLowerCase());
+export async function fetchFeedback(rpc: RpcClient, agentId: bigint, block = "latest"): Promise<FeedbackEntry[]> {
+  const clients = ((await callReputation(rpc, "getClients", [agentId], block))[0] as string[]).map((c) => c.toLowerCase());
   if (clients.length === 0) return [];
   const pages: string[][] = [];
   if (clients.length <= FEEDBACK_PAGE) pages.push([]);
   else for (let i = 0; i < clients.length; i += FEEDBACK_PAGE) pages.push(clients.slice(i, i + FEEDBACK_PAGE));
   const results = await Promise.all(
-    pages.map((page) => callReputation(rpc, "readAllFeedback", [agentId, page, "", "", false]))
+    pages.map((page) => callReputation(rpc, "readAllFeedback", [agentId, page, "", "", false], block))
   );
   const out: FeedbackEntry[] = [];
   for (const r of results) {

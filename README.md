@@ -29,7 +29,8 @@ MonadTrust is meant to be built on. Full docs: [monadtrust.vercel.app/docs](http
   the ERC-8004 Reputation Registry, so a contract gets the filtered rating in one call. Each list records the audit
   hash and source block it came from.
 - **Run it yourself**: `npm run audit -- <agentId>` runs the same deterministic audit against any Monad RPC and prints
-  the counted list and `auditHash`. No need to trust our server.
+  the counted list and `auditHash`. Add `--block <n>` to re-run a published audit at the block it records and get the
+  same `auditHash`. No need to trust our server.
 
 ```bash
 npm run test:contract   # ReviewerLists checks against the live registry (read-only, costs nothing)
@@ -82,7 +83,7 @@ handful of Multicall3 calls. An agent with 60 reviewers takes a few hundred read
 
 ## What it can't see
 
-- History older than the RPC keeps (about four weeks) reads as "over 28 days".
+- History older than the public RPC keeps reads as "over N days": about 5 days on mainnet, 28 on testnet.
 - Who funded a wallet. Wallets paid by one person look independent unless they were created together.
 - A patient attacker can age wallets and give them activity. These rules make fake reviews slower and more
   expensive, not impossible.
@@ -100,13 +101,15 @@ Other commands:
 
 ```bash
 npm test             # scoring engine, audit rules, and a full end-to-end run against a mock Monad RPC
+npm run test:contract  # ReviewerLists against the live ERC-8004 registry (eth_call only, no gas)
+npm run audit -- 182 [testnet] [--block <n>]  # one audit from your machine, with its auditHash
 npm run check:live   # read the real ERC-8004 registries on Monad testnet and audit the busiest agent
 npm run mock:rpc     # offline mock chain; then MONAD_RPC_URLS=http://127.0.0.1:8545 npm run dev
 npm run snapshot     # save the agent list and audits of the busiest agents to data/ (served instantly, refreshed live)
 ```
 
-Optional environment variables (see `.env.example`): `MONAD_RPC_URLS` (comma-separated, e.g. a free QuickNode or
-Dwellir endpoint), `LLM_API_KEY`, `MAX_REVIEWERS` (default 60), `SCAN_SPAN` (default 1500).
+Optional environment variables (see `.env.example`): `MONAD_MAINNET_RPC_URLS` and `MONAD_RPC_URLS` (testnet),
+comma-separated, e.g. a free QuickNode or Dwellir endpoint; `LLM_API_KEY`; `MAX_REVIEWERS` (default 60).
 
 ## API
 
