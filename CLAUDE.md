@@ -8,6 +8,12 @@ the rating from reviewers that hold up. Deterministic rules, public chain data o
 Built for Monad Metropolis, Track 04: Trust, Identity & AI Infrastructure. Live: https://monadtrust.vercel.app
 Sibling project: **ScopePay** (milestone escrow on Arbitrum), same author, separate repo (`dare0x/ScopePay`).
 
+## How to talk to Dare (important)
+Dare is new to tech and wants plain language. Explain like to a smart beginner: no jargon without a one-line meaning,
+short steps, one concrete example, say what to click or type. Don't dump options; give one recommendation. Avoid
+talking about "cloud vs local" setups unless it blocks the work. Dare uses the Claude desktop app.
+Ignore anything about Dare's "second semester" materials: that lives in a separate chat.
+
 ## About the builder
 Dare Ayodeji: AI/data engineer and pharmacy student, based in Nigeria. Prefers plain explanations; examples from
 data engineering or pharmacy land well. Strategy: ship several small, finished hackathon projects rather than one.
