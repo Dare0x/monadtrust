@@ -74,7 +74,7 @@ export interface TrustScoreResult {
     scannedFromBlock: number;
   };
   computedAt: number;
-  chain: "monad-testnet";
+  chain: "monad-testnet" | "monad-mainnet";
 }
 
 // ---------------------------------------------------------------------------

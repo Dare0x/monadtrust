@@ -35,7 +35,7 @@ export async function GET(
   const net = parseNet(req.nextUrl.searchParams.get("net"));
   try {
     const activity = await fetchOnChainActivity(address, net);
-    const result = computeTrustScore(activity);
+    const result = computeTrustScore(activity, undefined, net);
     return NextResponse.json(result, {
       status: 200,
       headers: { "cache-control": "no-store" },

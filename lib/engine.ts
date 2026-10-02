@@ -12,6 +12,7 @@
 // UI — it is a transparent, reproducible reputation signal.
 
 import { OnChainActivity, MetricBreakdown, TrustScoreResult } from "./types";
+import { NETS, type Net } from "./chain";
 
 const DAY = 86_400;
 
@@ -133,7 +134,7 @@ function computeRecency(activity: OnChainActivity): MetricBreakdown {
  * flagged in-copy, because testnet MON is free from a faucet and thus a weak
  * trust signal — we include it for context, not as a pillar of the score.
  */
-function computeBalance(activity: OnChainActivity): MetricBreakdown {
+function computeBalance(activity: OnChainActivity, net: Net): MetricBreakdown {
   const b = activity.balance;
   const score = clamp((Math.log10(b + 1) / 2) * 100);
   return {
@@ -141,9 +142,10 @@ function computeBalance(activity: OnChainActivity): MetricBreakdown {
     label: "Native balance",
     value: score,
     raw: `${b.toFixed(3)} MON`,
-    detail: `Holds ${b.toFixed(
-      3
-    )} MON. Testnet MON is faucet-funded, so this is weighted lightly.`,
+    detail:
+      net === "testnet"
+        ? `Holds ${b.toFixed(3)} MON. Testnet MON is faucet-funded, so this is weighted lightly.`
+        : `Holds ${b.toFixed(3)} MON. A balance says little about who controls a wallet, so this is weighted lightly.`,
   };
 }
 
@@ -168,13 +170,14 @@ function bandFor(
 
 export function computeTrustScore(
   activity: OnChainActivity,
-  label?: string
+  label?: string,
+  net: Net = "testnet"
 ): TrustScoreResult {
   const metrics: MetricBreakdown[] = [
     computeAge(activity),
     computeActivity(activity),
     computeRecency(activity),
-    computeBalance(activity),
+    computeBalance(activity, net),
   ];
 
   const trustScore = Math.round(
@@ -227,6 +230,6 @@ export function computeTrustScore(
       scannedFromBlock: activity.scannedFromBlock,
     },
     computedAt: Date.now(),
-    chain: "monad-testnet",
+    chain: NETS[net].slug,
   };
 }
